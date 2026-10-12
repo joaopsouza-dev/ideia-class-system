@@ -1,30 +1,25 @@
 package com.catolica.ideiaspace.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-
+import com.catolica.ideiaspace.model.enums.PapelTurma;
+import com.catolica.ideiaspace.model.enums.StatusMatricula;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @Entity
+@Table(name = "turma_usuario")
 public class TurmaUsuario {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Enumerated(EnumType.STRING)
-    private PapelTurma papel;
 
     @ManyToOne
     @JoinColumn(name = "turma_id")
@@ -33,4 +28,24 @@ public class TurmaUsuario {
     @ManyToOne
     @JoinColumn(name = "usuario_id")
     private Usuario usuario;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "papel")
+    private PapelTurma papel;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private StatusMatricula status;
+
+    @Column(name = "inicio_em")
+    private LocalDate inicioEm;
+
+    @Column(name = "fim_em")
+    private LocalDate fimEm;
+
+    @Column(name = "criado_em")
+    private LocalDateTime criadoEm;
+
+    @Column(name = "atualizado_em")
+    private LocalDateTime atualizadoEm;
 }
