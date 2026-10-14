@@ -1,0 +1,162 @@
+# =============================================================================
+# compose.yaml — Ideia Space
+# Orquestra dois serviços: banco de dados (PostgreSQL) e backend (Spring Boot).
+#
+# Como usar:
+#   Primeira vez (ou após mudar o código):
+#     docker compose up --build
+#
+#   Parar sem apagar os dados:
+#     docker compose down
+#
+#   Ver logs em tempo real:
+#     docker compose logs -f
+#
+#   Ver logs só do backend:
+#     docker compose logs -f backend
+#
+#   ⚠️  CUIDADO: "docker compose down -v" APAGA o volume do banco.
+#       Use apenas se quiser reiniciar o banco do zero.
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # SERVIÇO: db (PostgreSQL)
+  #
+  # O PostgreSQL é iniciado ANTES do backend porque o backend precisa
+  # do banco disponível para conectar e rodar as migrations do Flyway.
+  #
+  # Na PRIMEIRA inicialização (volume vazio), o PostgreSQL executa
+  # automaticamente os arquivos em /docker-entrypoint-initdb.d/:
+  #   - 00_roles_bootstrap.sql: cria as roles app_owner e app_backend,
+  #     exigidas pela migration V1 do Flyway.
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:17
+
+    # Nome do container — aparece nos logs e no "docker ps".
+    container_name: ideiaspace-db
+
+    environment:
+      # Nome do banco criado automaticamente pelo PostgreSQL na primeira vez.
+      POSTGRES_DB: ideiaspace
+
+      # Usuário administrador do banco (superusuário do PostgreSQL no container).
+      # Este usuário NÃO é o mesmo usado pela aplicação (app_backend).
+      # Ele é usado internamente pelo Flyway e pelo bootstrap.
+      POSTGRES_USER: postgres
+
+      # Senha do usuário postgres. Troque por algo mais seguro em produção.
+      POSTGRES_PASSWORD: postgres_dev_password
+
+    ports:
+      # Publica a porta 5432 do container na porta 5433 do seu Mac.
+      # Por que 5433?
+      #   Se você já tem um PostgreSQL local rodando na porta 5432,
+      #   usar a mesma porta causaria conflito. Com 5433, você acessa
+      #   o banco do Docker pelo IntelliJ/psql usando localhost:5433,
+      #   enquanto o backend continua usando db:5432 internamente.
+      #   Se não tiver PostgreSQL local, pode trocar para "5432:5432".
+      - "5433:5432"
+
+    volumes:
+      # Volume nomeado: persiste os dados do banco entre reinicializações.
+      # O Docker gerencia este volume automaticamente.
+      # Sem isso, todos os dados seriam perdidos ao parar o container.
+      - postgres_data:/var/lib/postgresql/data
+
+      # Monta o script de bootstrap para ser executado na primeira inicialização.
+      # O PostgreSQL executa automaticamente arquivos .sql deste diretório
+      # apenas quando o volume está vazio (primeira vez).
+      - ./ideiaspace/db/init:/docker-entrypoint-initdb.d
+
+    healthcheck:
+      # Verifica se o PostgreSQL está aceitando conexões antes de liberar o backend.
+      # pg_isready é um utilitário oficial do PostgreSQL para este fim.
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ideiaspace"]
+      interval: 5s    # Verifica a cada 5 segundos
+      timeout: 5s     # Espera até 5 segundos por resposta
+      retries: 10     # Tenta até 10 vezes antes de declarar falha
+      start_period: 10s  # Aguarda 10s antes de começar a verificar (tempo de boot)
+
+    networks:
+      - ideiaspace-net
+
+  # ---------------------------------------------------------------------------
+  # SERVIÇO: backend (Spring Boot)
+  #
+  # O Dockerfile do backend usa multi-stage build:
+  #   1. Compila o projeto com Maven (etapa "build")
+  #   2. Executa apenas o JAR gerado (etapa "runtime")
+  #
+  # O backend SÓ inicia após o banco passar no healthcheck (depends_on).
+  # Mesmo assim, o Spring Boot tem seu próprio retry de conexão — é normal
+  # ver algumas tentativas nos logs antes de conectar com sucesso.
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      # Onde está o Dockerfile do backend.
+      context: ./ideiaspace
+      dockerfile: Dockerfile
+
+    container_name: ideiaspace-backend
+
+    environment:
+      # URL de conexão JDBC com o banco.
+      # Dentro da rede Docker, o hostname do serviço de banco é "db"
+      # (o nome definido acima). NÃO use "localhost" aqui — localhost
+      # dentro do container do backend aponta para o próprio container.
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ideiaspace
+
+      # Usuário que a aplicação Spring Boot usa para conectar ao banco.
+      # Este é o "app_backend", criado pelo script de bootstrap.
+      SPRING_DATASOURCE_USERNAME: app_backend
+      SPRING_DATASOURCE_PASSWORD: app_backend_password
+
+      # Usuário que o Flyway usa para rodar as migrations.
+      # A V1 precisa de um usuário com mais privilégios (capaz de SET ROLE app_owner).
+      # Usamos o superusuário "postgres" para as migrations.
+      SPRING_FLYWAY_USER: postgres
+      SPRING_FLYWAY_PASSWORD: postgres_dev_password
+
+      # Flyway habilitado e configurado para rodar no schema public.
+      SPRING_FLYWAY_ENABLED: "true"
+      SPRING_FLYWAY_SCHEMAS: public
+
+      # baseline-on-migrate: se o banco já tiver tabelas mas não tiver o
+      # histórico do Flyway (flyway_schema_history), o Flyway marca o estado
+      # atual como baseline em vez de tentar criar tudo do zero.
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+
+    ports:
+      # A API REST fica disponível em http://localhost:8080 no seu Mac.
+      - "8080:8080"
+
+    depends_on:
+      db:
+        # O backend só inicia após o banco passar no healthcheck.
+        # Isso reduz (mas não elimina) erros de conexão na inicialização.
+        condition: service_healthy
+
+    networks:
+      - ideiaspace-net
+
+# -----------------------------------------------------------------------------
+# VOLUMES
+# Volumes nomeados são gerenciados pelo Docker e persistem entre "docker compose down".
+# Só são removidos com "docker compose down -v" (use com cuidado!).
+# -----------------------------------------------------------------------------
+volumes:
+  postgres_data:
+    name: ideiaspace_postgres_data
+
+# -----------------------------------------------------------------------------
+# REDES
+# A rede "ideiaspace-net" permite que os containers se comuniquem pelo nome
+# do serviço (ex: backend se conecta ao banco usando o hostname "db").
+# Os containers não ficam expostos entre si além desta rede interna.
+# -----------------------------------------------------------------------------
+networks:
+  ideiaspace-net:
+    name: ideiaspace-network
