@@ -1,7 +1,7 @@
-package com.catolica.ideiaspace.model;
+package com.catolica.ideiaspace.domain;
 
-import com.catolica.ideiaspace.model.enums.PerfilUsuario;
-import com.catolica.ideiaspace.model.enums.StatusConta;
+import com.catolica.ideiaspace.domain.enums.PerfilUsuario;
+import com.catolica.ideiaspace.domain.enums.StatusConta;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

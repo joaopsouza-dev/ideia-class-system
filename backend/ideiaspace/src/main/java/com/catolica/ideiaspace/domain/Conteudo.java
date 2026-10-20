@@ -1,7 +1,8 @@
-package com.catolica.ideiaspace.model;
+package com.catolica.ideiaspace.domain;
 
-import com.catolica.ideiaspace.model.enums.TipoMaterial;
+import com.catolica.ideiaspace.domain.enums.TipoMaterial;
 import jakarta.persistence.*;
+import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -10,8 +11,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @Entity
 @Table(name = "conteudo")

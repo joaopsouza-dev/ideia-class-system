@@ -1,7 +1,7 @@
-package com.catolica.ideiaspace.model;
+package com.catolica.ideiaspace.domain;
 
-import com.catolica.ideiaspace.model.enums.PapelTurma;
-import com.catolica.ideiaspace.model.enums.StatusMatricula;
+import com.catolica.ideiaspace.domain.enums.PapelTurma;
+import com.catolica.ideiaspace.domain.enums.StatusMatricula;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

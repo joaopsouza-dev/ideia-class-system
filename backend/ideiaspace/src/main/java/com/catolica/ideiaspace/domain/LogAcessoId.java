@@ -1,4 +1,4 @@
-package com.catolica.ideiaspace.model;
+package com.catolica.ideiaspace.domain;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

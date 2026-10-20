@@ -1,6 +1,6 @@
-package com.catolica.ideiaspace.model;
+package com.catolica.ideiaspace.domain;
 
-import com.catolica.ideiaspace.model.enums.AcaoLog;
+import com.catolica.ideiaspace.domain.enums.AcaoLog;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

@@ -1,4 +1,4 @@
-package com.catolica.ideiaspace.model.enums;
+package com.catolica.ideiaspace.domain.enums;
 
 public enum StatusConta {
     ATIVA,

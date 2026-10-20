@@ -1,4 +1,4 @@
-package com.catolica.ideiaspace.model;
+package com.catolica.ideiaspace.domain;
 
 import jakarta.persistence.*;
 import lombok.Getter;

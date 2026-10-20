@@ -1,38 +1,6 @@
--- ============================================================================
--- V2.1 - ARQUITETURA DDL SEGURA E DE PRODUÇÃO
--- PostgreSQL 18+
--- Sistema: Repositório Digital Protegido de Conteúdo Acadêmico
---
--- Objetivos:
---   * Least Privilege
---   * RLS para isolamento por turma
---   * Security Definer para operações sensíveis
---   * Auditoria append-only e particionada
---   * Soft delete / anonimização
---   * Armazenamento externo de mídias (somente storage_path no banco)
---   * Autoria de conteúdo protegida contra falsificação
---   * Suporte a matrícula ativa
---   * Modelo Disciplina -> Turma -> Conteúdo
---
--- PRÉ-REQUISITOS:
---   1. Criar as roles pelo arquivo 00_roles_bootstrap.sql.
---   2. Executar esta migration como app_owner (ou uma role membro de app_owner
---      que possa executar SET ROLE app_owner).
---   3. app_backend NÃO deve ser owner das tabelas, superuser nem BYPASSRLS.
---   4. A aplicação deve definir app.current_user_id usando SET LOCAL dentro de
---      uma transação por requisição, nunca com SET persistente em pool.
---   5. O hash da senha deve ser produzido pelo backend (preferencialmente
---      Argon2id ou bcrypt). Este banco armazena apenas o hash.
---   6. cpf_cifrado e cpf_lookup_hmac devem ser produzidos pela camada de
---      aplicação. A chave de criptografia/HMAC não deve ficar no código SQL.
--- ============================================================================
-
-BEGIN;
 SET LOCAL TIME ZONE 'UTC';
 
--- ----------------------------------------------------------------------------
--- 0. PRÉ-VALIDAÇÕES DE SEGURANÇA
--- ----------------------------------------------------------------------------
+
 
 DO $$
 BEGIN
@@ -85,27 +53,18 @@ BEGIN
 END;
 $$;
 
--- ----------------------------------------------------------------------------
--- 1. HARDENING DE SCHEMA E PRIVILÉGIOS PADRÃO
--- ----------------------------------------------------------------------------
 
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
 GRANT USAGE, CREATE ON SCHEMA public TO app_owner;
 GRANT USAGE ON SCHEMA public TO app_backend;
 
--- Evita exposição acidental em objetos futuros criados por app_owner.
 ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM PUBLIC;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM PUBLIC;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM PUBLIC;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TYPES FROM PUBLIC;
 
--- Mesmo usando objetos em public, o search_path das funções sensíveis será
--- explicitamente fixado e pg_temp ficará por último.
 SET search_path = public, pg_catalog;
 
--- ----------------------------------------------------------------------------
--- 2. TIPOS CONTROLADOS
--- ----------------------------------------------------------------------------
 
 CREATE TYPE perfil_usuario_enum AS ENUM ('ALUNO', 'DOCENTE', 'ADMIN');
 CREATE TYPE status_conta_enum AS ENUM ('ATIVA', 'INATIVA', 'BLOQUEADA');
@@ -122,10 +81,6 @@ CREATE TYPE acao_log_enum AS ENUM (
     'TENTATIVA_ACESSO_NEGADO',
     'GEROU_URL_TEMPORARIA'
 );
-
--- ----------------------------------------------------------------------------
--- 3. FUNÇÃO BASE DE IDENTIDADE DA SESSÃO
--- ----------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION app_current_user_id()
 RETURNS BIGINT
@@ -144,19 +99,11 @@ $$;
 REVOKE ALL ON FUNCTION app_current_user_id() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION app_current_user_id() TO app_backend;
 
--- ----------------------------------------------------------------------------
--- 4. MODELAGEM DAS TABELAS
--- ----------------------------------------------------------------------------
-
--- 4.1 Usuário
 CREATE TABLE usuario (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     nome_completo VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
 
-    -- CPF não é armazenado em claro.
-    -- cpf_cifrado: ciphertext produzido pela aplicação.
-    -- cpf_lookup_hmac: HMAC determinístico usado para unicidade/lookup.
     cpf_cifrado BYTEA,
     cpf_lookup_hmac BYTEA,
 
@@ -191,7 +138,6 @@ CREATE TABLE usuario (
         )
 );
 
--- 4.2 Disciplina
 CREATE TABLE disciplina (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     codigo VARCHAR(50) NOT NULL,
@@ -207,7 +153,6 @@ CREATE TABLE disciplina (
         CHECK (length(btrim(nome)) >= 2)
 );
 
--- 4.3 Turma
 CREATE TABLE turma (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     disciplina_id BIGINT NOT NULL
@@ -233,7 +178,6 @@ CREATE TABLE turma (
         CHECK (excluido_em IS NULL OR status <> 'ATIVA')
 );
 
--- 4.4 Vínculo / matrícula
 CREATE TABLE turma_usuario (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     turma_id BIGINT NOT NULL
@@ -254,7 +198,6 @@ CREATE TABLE turma_usuario (
         CHECK (excluido_em IS NULL OR status <> 'ATIVA')
 );
 
--- 4.5 Conteúdo / mídia
 CREATE TABLE conteudo (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     turma_id BIGINT NOT NULL
@@ -265,8 +208,6 @@ CREATE TABLE conteudo (
     descricao TEXT,
     tipo_material tipo_material_enum NOT NULL,
 
-    -- Apenas identificador interno do objeto no Storage.
-    -- NÃO armazenar URL pública ou URL assinada aqui.
     storage_path TEXT NOT NULL,
 
     mime_type VARCHAR(150) NOT NULL,
@@ -292,10 +233,6 @@ CREATE TABLE conteudo (
         CHECK (sha256 IS NULL OR sha256 ~ '^[0-9a-fA-F]{64}$')
 );
 
--- 4.6 Auditoria de acesso.
--- Particionada por data para suportar crescimento contínuo.
--- A PK inclui criado_em porque o PostgreSQL exige que a chave de
--- particionamento participe de PK/UNIQUE em tabela particionada.
 CREATE TABLE log_acesso (
     id BIGINT GENERATED ALWAYS AS IDENTITY,
     criado_em TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
@@ -315,9 +252,6 @@ CREATE TABLE log_acesso (
         CHECK (user_agent IS NULL OR length(user_agent) <= 4096)
 ) PARTITION BY RANGE (criado_em);
 
--- Cria 12 meses a partir do mês corrente + partição DEFAULT como rede de segurança.
--- A DEFAULT evita falha de escrita caso uma partição futura ainda não tenha sido
--- criada. A operação de manutenção deve criar novas partições regularmente.
 DO $$
 DECLARE
     v_mes DATE := date_trunc('month', CURRENT_DATE)::DATE;
@@ -343,9 +277,6 @@ $$;
 CREATE TABLE log_acesso_default
     PARTITION OF log_acesso DEFAULT;
 
--- ----------------------------------------------------------------------------
--- 5. ÍNDICES
--- ----------------------------------------------------------------------------
 
 CREATE UNIQUE INDEX idx_usuario_email_ativo
     ON usuario (lower(email))
@@ -400,10 +331,6 @@ CREATE INDEX idx_log_acesso_conteudo_data
 CREATE INDEX idx_log_acesso_acao_data
     ON log_acesso (acao, criado_em DESC);
 
--- ----------------------------------------------------------------------------
--- 6. TRIGGERS DE INTEGRIDADE
--- ----------------------------------------------------------------------------
-
 CREATE OR REPLACE FUNCTION fn_trigger_set_timestamp()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -436,7 +363,6 @@ CREATE TRIGGER trg_conteudo_atualizado_em
     BEFORE UPDATE ON conteudo
     FOR EACH ROW EXECUTE FUNCTION fn_trigger_set_timestamp();
 
--- Garante que vínculos não apontem para usuário/turma inativos ou excluídos.
 CREATE OR REPLACE FUNCTION fn_validar_turma_usuario()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -474,7 +400,6 @@ CREATE TRIGGER trg_validar_turma_usuario
     BEFORE INSERT OR UPDATE ON turma_usuario
     FOR EACH ROW EXECUTE FUNCTION fn_validar_turma_usuario();
 
--- Garante que uma turma nova/alterada aponta para uma disciplina ativa.
 CREATE OR REPLACE FUNCTION fn_validar_disciplina_da_turma()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -500,7 +425,6 @@ CREATE TRIGGER trg_validar_disciplina_da_turma
     BEFORE INSERT OR UPDATE OF disciplina_id ON turma
     FOR EACH ROW EXECUTE FUNCTION fn_validar_disciplina_da_turma();
 
--- Garante que o autor do conteúdo é realmente um DOCENTE ativo daquela turma.
 CREATE OR REPLACE FUNCTION fn_validar_autor_conteudo()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -536,9 +460,6 @@ CREATE TRIGGER trg_validar_autor_conteudo
     BEFORE INSERT OR UPDATE ON conteudo
     FOR EACH ROW EXECUTE FUNCTION fn_validar_autor_conteudo();
 
--- ----------------------------------------------------------------------------
--- 7. FUNÇÕES DE AUTORIZAÇÃO
--- ----------------------------------------------------------------------------
 
 CREATE OR REPLACE FUNCTION is_admin()
 RETURNS BOOLEAN
@@ -671,12 +592,6 @@ AS $$
     );
 $$;
 
--- ----------------------------------------------------------------------------
--- 8. FUNÇÕES DE NEGÓCIO / DADOS SENSÍVEIS
--- ----------------------------------------------------------------------------
-
--- Criação de usuário somente por função controlada. O primeiro ADMIN deve ser
--- criado por bootstrap administrativo executado pelo processo de implantação.
 CREATE OR REPLACE FUNCTION fn_criar_usuario(
     p_nome_completo VARCHAR,
     p_email VARCHAR,
@@ -759,9 +674,6 @@ BEGIN
 END;
 $$;
 
--- Alteração de senha: o backend recebe apenas o hash já calculado.
--- Login: o backend recebe somente o hash da conta ativa encontrada pelo e-mail.
--- O hash não fica exposto por SELECT direto da tabela usuario.
 CREATE OR REPLACE FUNCTION fn_obter_hash_senha_por_email(p_email VARCHAR)
 RETURNS VARCHAR
 LANGUAGE sql
@@ -777,8 +689,6 @@ AS $$
      LIMIT 1;
 $$;
 
--- Watermark: somente o próprio usuário (ou ADMIN) pode obter os dados protegidos.
--- O CPF continua cifrado e a descriptografia ocorre fora do PostgreSQL.
 CREATE OR REPLACE FUNCTION fn_obter_dados_watermark(p_usuario_id BIGINT)
 RETURNS TABLE (
     nome_completo VARCHAR,
@@ -842,8 +752,6 @@ BEGIN
     END IF;
 END;
 $$;
-
--- Soft delete + anonimização. O histórico de logs permanece intacto.
 CREATE OR REPLACE FUNCTION fn_anonimizar_usuario(p_usuario_id BIGINT)
 RETURNS VOID
 LANGUAGE plpgsql
@@ -887,9 +795,6 @@ BEGIN
 END;
 $$;
 
--- Criação de conteúdo controlada.
--- Professor comum somente pode criar conteúdo em seu próprio nome.
--- ADMIN pode criar em nome de um DOCENTE informado explicitamente.
 CREATE OR REPLACE FUNCTION fn_criar_conteudo(
     p_turma_id BIGINT,
     p_professor_id BIGINT DEFAULT NULL,
@@ -966,7 +871,6 @@ BEGIN
 END;
 $$;
 
--- Soft delete de conteúdo; não existe DELETE direto para o backend.
 CREATE OR REPLACE FUNCTION fn_arquivar_conteudo(p_conteudo_id BIGINT)
 RETURNS VOID
 LANGUAGE plpgsql
@@ -998,9 +902,6 @@ BEGIN
 END;
 $$;
 
--- Auditoria append-only. user_id, timestamp e request_id são determinados pelo DB.
--- TENTATIVA_ACESSO_NEGADO pode ser registrada mesmo sem permissão ao conteúdo;
--- as demais ações exigem acesso válido à turma.
 CREATE OR REPLACE FUNCTION fn_registrar_acesso(
     p_conteudo_id BIGINT,
     p_acao acao_log_enum,
@@ -1077,9 +978,6 @@ BEGIN
 END;
 $$;
 
--- ----------------------------------------------------------------------------
--- 9. RLS
--- ----------------------------------------------------------------------------
 
 ALTER TABLE usuario ENABLE ROW LEVEL SECURITY;
 ALTER TABLE disciplina ENABLE ROW LEVEL SECURITY;
@@ -1088,11 +986,6 @@ ALTER TABLE turma_usuario ENABLE ROW LEVEL SECURITY;
 ALTER TABLE conteudo ENABLE ROW LEVEL SECURITY;
 ALTER TABLE log_acesso ENABLE ROW LEVEL SECURITY;
 
--- IMPORTANTE: não usamos FORCE RLS porque as funções SECURITY DEFINER são
--- propriedade do app_owner e precisam consultar as tabelas para avaliar as
--- regras. A role app_backend não é owner e não possui BYPASSRLS.
-
--- 9.1 Usuario
 CREATE POLICY usuario_select_policy
     ON usuario
     FOR SELECT
@@ -1124,9 +1017,6 @@ CREATE POLICY usuario_update_policy
         )
     );
 
--- Não existe INSERT direto. Criação ocorre por fn_criar_usuario().
-
--- 9.2 Disciplina
 CREATE POLICY disciplina_select_policy
     ON disciplina
     FOR SELECT
@@ -1152,9 +1042,6 @@ CREATE POLICY disciplina_admin_update_policy
     USING (public.is_admin())
     WITH CHECK (public.is_admin());
 
--- Não existe DELETE direto para preservar histórico.
-
--- 9.3 Turma
 CREATE POLICY turma_select_policy
     ON turma
     FOR SELECT
@@ -1204,7 +1091,6 @@ CREATE POLICY turma_usuario_admin_update_policy
     USING (public.is_admin())
     WITH CHECK (public.is_admin());
 
--- 9.5 Conteúdo
 CREATE POLICY conteudo_select_policy
     ON conteudo
     FOR SELECT
@@ -1217,7 +1103,6 @@ CREATE POLICY conteudo_select_policy
         )
     );
 
--- Professor só altera conteúdo que é seu. professor_id não recebe UPDATE direto.
 CREATE POLICY conteudo_update_policy
     ON conteudo
     FOR UPDATE
@@ -1237,10 +1122,6 @@ CREATE POLICY conteudo_update_policy
         )
     );
 
--- INSERT ocorre somente por fn_criar_conteudo().
--- DELETE físico não é concedido ao backend.
-
--- 9.6 Auditoria
 CREATE POLICY log_acesso_select_policy
     ON log_acesso
     FOR SELECT
@@ -1249,24 +1130,12 @@ CREATE POLICY log_acesso_select_policy
         usuario_id = public.app_current_user_id()
         OR public.is_admin()
     );
-
--- INSERT/UPDATE/DELETE não são concedidos diretamente ao app_backend.
--- A única entrada é fn_registrar_acesso().
-
--- ----------------------------------------------------------------------------
--- 10. PRIVILÉGIOS DO RUNTIME
--- ----------------------------------------------------------------------------
-
--- Reafirma que app_backend não possui privilégios amplos herdados do ambiente.
-REVOKE ALL ON ALL TABLES IN SCHEMA public FROM app_backend;
+REVOKE ALL ON TABLE usuario, disciplina, turma, turma_usuario, conteudo, log_acesso FROM app_backend;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM app_backend;
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM app_backend;
--- Não existe sintaxe ALL TYPES para este REVOKE. Os privilégios padrão de
--- TYPES para PUBLIC já foram revogados; o USAGE necessário é concedido abaixo.
 
 GRANT USAGE ON SCHEMA public TO app_backend;
 
--- Tabelas: somente o necessário ao fluxo do backend.
 GRANT SELECT (
     id,
     nome_completo,
@@ -1295,15 +1164,12 @@ GRANT SELECT, UPDATE (
 
 GRANT SELECT ON log_acesso TO app_backend;
 
--- USAGE é suficiente para uso normal de nextval(); não concedemos UPDATE/setval.
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO app_backend;
 
--- Tipos de domínio do contrato do backend.
 GRANT USAGE ON TYPE perfil_usuario_enum, status_conta_enum, papel_turma_enum,
     status_turma_enum, status_matricula_enum, tipo_material_enum, acao_log_enum
     TO app_backend;
 
--- Funções de autorização / negócio.
 REVOKE ALL ON FUNCTION is_admin() FROM PUBLIC;
 REVOKE ALL ON FUNCTION usuario_tem_papel_na_turma(BIGINT, papel_turma_enum) FROM PUBLIC;
 REVOKE ALL ON FUNCTION usuario_tem_papel_especifico_na_turma(BIGINT, BIGINT, papel_turma_enum) FROM PUBLIC;
@@ -1341,52 +1207,10 @@ GRANT EXECUTE ON FUNCTION fn_criar_conteudo(BIGINT, BIGINT, VARCHAR, TEXT, tipo_
 GRANT EXECUTE ON FUNCTION fn_arquivar_conteudo(BIGINT) TO app_backend;
 GRANT EXECUTE ON FUNCTION fn_registrar_acesso(BIGINT, acao_log_enum, INET, TEXT, JSONB) TO app_backend;
 
--- ----------------------------------------------------------------------------
--- 11. DEFAULT PRIVILEGES PARA NOVOS OBJETOS CRIADOS POR app_owner
--- ----------------------------------------------------------------------------
-
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE ON SEQUENCES TO app_backend;
 
--- Nenhuma tabela nova deve ser exposta automaticamente.
 ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM PUBLIC;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM PUBLIC;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM PUBLIC;
 
-COMMIT;
-
--- ============================================================================
--- V2.1: correções aplicadas após validação real da V2:
---   1. Removida instrução inválida 'REVOKE ALL ON ALL TYPES ...'.
---   2. Restaurado EXECUTE de app_current_user_id() após o REVOKE global de funções.
---   3. Constraint de CPF permite ALUNO já anonimizado/excluído.
---   4. Bootstrap torna app_owner proprietário do schema public.
--- ============================================================================
--- NOTAS OPERACIONAIS
--- ============================================================================
--- 1. O backend deve abrir uma transação por request e executar, antes de
---    qualquer SELECT/UPDATE:
---      SET LOCAL app.current_user_id = '123';
---
--- 2. Nunca use SET persistente em connection pool. SET LOCAL expira no COMMIT
---    e evita vazamento de identidade entre requisições.
---
--- 3. O backend NÃO deve expor credenciais do PostgreSQL ao navegador.
---
--- 4. storage_path deve apontar para o objeto privado no Cloud Storage/Firebase.
---    URL assinada é efêmera e deve ser gerada pelo backend após a autorização.
---
--- 5. Watermark: backend consulta nome_completo + descriptografa cpf_cifrado
---    usando a infraestrutura de chaves da aplicação. O CPF em claro não deve
---    ser devolvido ao frontend fora do contexto necessário para a watermark.
---
--- 6. A partição DEFAULT é uma rede de segurança. Em operação normal, criar as
---    partições dos próximos meses antes de elas serem necessárias. Ao retirar
---    dados antigos, prefira DETACH/DROP de partições após política de retenção.
---
--- 7. Logs são dados potencialmente pessoais (IP/user-agent). Defina política
---    formal de retenção, acesso administrativo e descarte conforme LGPD.
---
--- 8. BACKUP/PITR, replicação, failover, pool de conexões, monitoramento e
---    storage externo são responsabilidades de infraestrutura e não são
---    resolvidos por este DDL isoladamente.
--- ============================================================================
+RESET ROLE;

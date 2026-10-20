@@ -1,29 +1,5 @@
--- ============================================================================
--- TESTES RLS COM ASSERÇÕES - V2.1
--- Banco DESCARTÁVEL, depois de 00 (superusuário) e 01 (app_owner).
---
--- Uso:
---   psql -U postgres -P pager=off -v ON_ERROR_STOP=1 -d teste_v21 -f V2__rls_tests.sql
---
--- Estratégia:
---   * O seed é inserido como superusuário (bypassa RLS), para montar o cenário.
---   * Cada teste troca a identidade com set_config('app.current_user_id', ...)
---     e executa como app_backend (SET ROLE), que é o runtime real.
---   * Tudo roda em uma transação que termina com ROLLBACK: o banco fica limpo.
---
--- Atores:
---   ALUNO A  -> matriculado como DISCENTE na Turma 1
---   ALUNO B  -> matriculado como DISCENTE na Turma 2
---   DOCENTE C -> DOCENTE na Turma 1
---   DOCENTE E -> DOCENTE na Turma 2 (autor do conteúdo da Turma 2)
---   ADMIN D  -> administrador
--- ============================================================================
-
 BEGIN;
 
--- ----------------------------------------------------------------------------
--- SEED (como superusuário)
--- ----------------------------------------------------------------------------
 INSERT INTO usuario (nome_completo, email, hash_senha, perfil, status_conta, cpf_cifrado, cpf_lookup_hmac)
 VALUES
   ('Aluno A', 'a@rls.teste', 'hash_teste_com_mais_de_20_caracteres', 'ALUNO',   'ATIVA', '\x0a'::bytea, '\xa1'::bytea),
@@ -50,8 +26,6 @@ FROM (VALUES
 JOIN turma t ON t.codigo = v.turma_codigo
 JOIN usuario u ON u.email = v.email;
 
--- Conteúdo da Turma 1 (autor C) e da Turma 2 (autor E). Insert direto, como
--- superusuário; o trigger fn_validar_autor_conteudo ainda é executado.
 INSERT INTO conteudo (turma_id, professor_id, titulo, tipo_material, storage_path, mime_type, tamanho_bytes)
 SELECT t.id, u.id, 'Apostila T1', 'PDF_APOSTILA', 'storage/t1/apostila.pdf', 'application/pdf', 1000
 FROM turma t, usuario u WHERE t.codigo = 'T1-RLS' AND u.email = 'c@rls.teste';
