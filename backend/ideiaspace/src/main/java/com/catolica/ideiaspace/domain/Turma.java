@@ -38,6 +38,7 @@ public class Turma {
     private Integer semestre;
 
     @Enumerated(EnumType.STRING)
+    @org.hibernate.annotations.JdbcType(org.hibernate.dialect.type.PostgreSQLEnumJdbcType.class)
     @Column(name = "status")
     private StatusTurma status;
 

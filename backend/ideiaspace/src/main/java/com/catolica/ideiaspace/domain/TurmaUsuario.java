@@ -30,10 +30,12 @@ public class TurmaUsuario {
     private Usuario usuario;
 
     @Enumerated(EnumType.STRING)
+    @org.hibernate.annotations.JdbcType(org.hibernate.dialect.type.PostgreSQLEnumJdbcType.class)
     @Column(name = "papel")
     private PapelTurma papel;
 
     @Enumerated(EnumType.STRING)
+    @org.hibernate.annotations.JdbcType(org.hibernate.dialect.type.PostgreSQLEnumJdbcType.class)
     @Column(name = "status")
     private StatusMatricula status;
 
@@ -48,4 +50,7 @@ public class TurmaUsuario {
 
     @Column(name = "atualizado_em")
     private LocalDateTime atualizadoEm;
+
+    @Column(name = "excluido_em")
+    private LocalDateTime excluidoEm;
 }

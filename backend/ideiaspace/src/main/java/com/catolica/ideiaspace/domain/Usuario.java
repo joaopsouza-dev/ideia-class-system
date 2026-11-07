@@ -28,20 +28,22 @@ public class Usuario {
     @Column(name = "email")
     private String email;
 
-    @Column(name = "cpf_cifrado")
+    @Transient
     private byte[] cpfCifrado;
 
-    @Column(name = "cpf_lookup_hmac")
+    @Transient
     private byte[] cpfLookupHmac;
 
-    @Column(name = "hash_senha")
+    @Transient
     private String hashSenha;
 
     @Enumerated(EnumType.STRING)
+    @org.hibernate.annotations.JdbcType(org.hibernate.dialect.type.PostgreSQLEnumJdbcType.class)
     @Column(name = "perfil")
     private PerfilUsuario perfil;
 
     @Enumerated(EnumType.STRING)
+    @org.hibernate.annotations.JdbcType(org.hibernate.dialect.type.PostgreSQLEnumJdbcType.class)
     @Column(name = "status_conta")
     private StatusConta statusConta;
 
