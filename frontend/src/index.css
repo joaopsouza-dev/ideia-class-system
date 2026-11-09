@@ -1,0 +1,182 @@
+@import "tailwindcss";
+@import "@fontsource-variable/montserrat/index.css";
+@import "@fontsource/poppins/400.css";
+@import "@fontsource/poppins/500.css";
+@import "@fontsource/poppins/600.css";
+
+/*
+ * Tokens da identidade visual — Branding Kit 2026 (Ideia Space).
+ * Paleta oficial: Magenta Órbita, Azul Estratosfera, Ciano Atmosfera, Roxo Nebulosa,
+ * Branco Estelar, Cinza Titânio, Oxford Blue (#0C0931).
+ * Tipografia: Montserrat (títulos/corpo) + Poppins (rótulos de interface).
+ */
+@theme {
+  --color-vacuo: #0c0931;
+  --color-estrato: #1d1856;
+  --color-estrato-700: #2a2380;
+  --color-magenta: #e80074;
+  --color-magenta-700: #c40063;
+  --color-magenta-50: #fde6f1;
+  --color-ciano: #00cfe5;
+  --color-ciano-700: #00788a;
+  --color-ciano-50: #dcf8fc;
+  --color-nebulosa: #7b2cbf;
+  --color-nebulosa-50: #f0e6f9;
+  --color-estelar: #f2f2f7;
+  --color-titanio: #8e9eab;
+  /* neutros derivados (contraste AA sobre branco) — não fazem parte do brandbook */
+  --color-ink: #1d1856;
+  --color-ink-soft: #565d78;
+  --color-line: #e1e1ec;
+  --color-ok: #0f7b4f;
+  --color-ok-50: #e2f6ec;
+  --color-warn: #8a5300;
+  --color-warn-50: #fff1d6;
+  --color-danger: #b4123a;
+  --color-danger-50: #fde7ec;
+
+  --font-sans: "Montserrat Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-ui: "Poppins", "Montserrat Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-card: 0 1px 2px rgb(12 9 49 / 0.05), 0 4px 16px rgb(12 9 49 / 0.05);
+  --shadow-pop: 0 12px 40px rgb(12 9 49 / 0.25);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    min-width: 320px;
+    min-height: 100dvh;
+    font-family: var(--font-sans);
+    color: var(--color-ink);
+    background: var(--color-estelar);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+  }
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-ciano);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  ::selection {
+    background: var(--color-magenta);
+    color: #fff;
+  }
+}
+
+/* Fundo estrelado discreto (telas de autenticação e sidebar) */
+.starfield {
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 18%, #f2f2f7 50%, transparent 52%),
+    radial-gradient(1px 1px at 28% 72%, #f2f2f7 50%, transparent 52%),
+    radial-gradient(1.5px 1.5px at 46% 34%, #00cfe5 50%, transparent 52%),
+    radial-gradient(1px 1px at 63% 82%, #f2f2f7 50%, transparent 52%),
+    radial-gradient(1.5px 1.5px at 78% 22%, #f2f2f7 50%, transparent 52%),
+    radial-gradient(1px 1px at 90% 58%, #00cfe5 50%, transparent 52%),
+    radial-gradient(1px 1px at 8% 90%, #f2f2f7 50%, transparent 52%),
+    radial-gradient(1.5px 1.5px at 54% 8%, #f2f2f7 50%, transparent 52%);
+}
+
+/* Conteúdo protegido: sem seleção, sem arrastar, oculto na impressão */
+.protected-surface {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.protected-surface img,
+.protected-surface video,
+.protected-surface canvas {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+@media print {
+  .protected-surface,
+  .protected-surface * {
+    display: none !important;
+  }
+  body::before {
+    content: "Conteúdo protegido — impressão não permitida.";
+    display: block;
+    padding: 2rem;
+    font-family: sans-serif;
+  }
+}
+
+@keyframes wm-hop {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@layer components {
+/* range input (barra de progresso/volume) */
+input[type="range"].seek {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  height: 20px;
+  width: 100%;
+  cursor: pointer;
+}
+input[type="range"].seek::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--color-magenta) var(--pct, 0%),
+    rgb(255 255 255 / 0.3) var(--pct, 0%)
+  );
+}
+input[type="range"].seek::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.3);
+}
+input[type="range"].seek::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-magenta);
+}
+input[type="range"].seek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 14px;
+  width: 14px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgb(232 0 116 / 0.5);
+}
+input[type="range"].seek::-moz-range-thumb {
+  height: 14px;
+  width: 14px;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+}
+}
