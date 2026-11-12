@@ -4,16 +4,12 @@ export function Logo({ className, tone = "light" }: { className?: string; tone?:
   return (
     <span
       className={cn(
-        "inline-flex h-12 w-32 shrink-0 items-center",
+        "inline-flex h-12 w-36 shrink-0 items-center",
         tone === "dark" && "rounded-md bg-vacuo px-2",
         className,
       )}
     >
-      <img
-        src="/logo.png"
-        alt="Ideia Space"
-        className="h-full w-full object-contain"
-      />
+      <img src="/logo.png" alt="Ideia Space" className="h-full w-full object-contain" />
     </span>
   );
 }

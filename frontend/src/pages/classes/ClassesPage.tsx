@@ -32,12 +32,12 @@ export default function ClassesPage() {
             <Link
               key={t.id}
               to={`/turmas/${t.id}`}
-              className="group rounded-2xl border border-line bg-white p-5 shadow-card transition-all hover:-translate-y-0.5 hover:border-magenta/50 hover:shadow-pop"
+              className="group rounded-lg border border-line bg-white p-5 shadow-card transition-all hover:border-acao-700"
             >
               <p className="font-ui text-[11px] font-semibold uppercase tracking-[0.16em] text-ciano-700">
                 {t.disciplinaCodigo} · {t.semestreAno}
               </p>
-              <h2 className="mt-1 text-xl group-hover:text-magenta-700">{t.disciplinaNome}</h2>
+              <h2 className="mt-1 text-xl group-hover:text-acao-700">{t.disciplinaNome}</h2>
               <p className="text-sm text-ink-soft">{t.nomeTurma}</p>
               <p className="mt-3 text-sm text-ink-soft">
                 Docente{t.docentes.length > 1 ? "s" : ""}: {t.docentes.map((d) => d.nome).join(", ") || "—"}
@@ -51,7 +51,7 @@ export default function ClassesPage() {
                   <Users className="size-4" aria-hidden />
                   {t.totalAlunos} {t.totalAlunos === 1 ? "aluno" : "alunos"}
                 </span>
-                <ArrowRight className="ml-auto size-4 text-magenta transition-transform group-hover:translate-x-1" aria-hidden />
+                <ArrowRight className="ml-auto size-4 text-acao-700 transition-transform group-hover:translate-x-1" aria-hidden />
               </div>
             </Link>
           ))}

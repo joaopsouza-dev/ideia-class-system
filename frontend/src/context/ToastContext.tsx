@@ -66,7 +66,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={t.id}
             role={t.kind === "error" ? "alert" : "status"}
             className={cn(
-              "pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border bg-white p-3.5 shadow-pop",
+              "pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded border bg-white p-3.5 shadow-pop",
               styles[t.kind].box,
             )}
           >

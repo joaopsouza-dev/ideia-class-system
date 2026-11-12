@@ -53,10 +53,10 @@ export function FileDropzone({ tipo, file, onFile, maxMb, error, disabled, curre
   return (
     <div>
       <span className="font-ui text-[13px] font-medium">
-        Arquivo <span className="text-magenta" aria-hidden>*</span>
+        Arquivo <span className="text-acao-700" aria-hidden>*</span>
       </span>
       {file ? (
-        <div className="mt-1.5 flex items-center gap-3 rounded-xl border border-line bg-estelar p-3">
+        <div className="mt-1.5 flex items-center gap-3 rounded border border-line bg-estelar p-3">
           <Icon className="size-8 shrink-0 text-estrato" aria-hidden />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">{file.name}</p>
@@ -78,8 +78,8 @@ export function FileDropzone({ tipo, file, onFile, maxMb, error, disabled, curre
           onDragLeave={() => setOver(false)}
           onDrop={onDrop}
           className={cn(
-            "mt-1.5 flex w-full flex-col items-center rounded-xl border-2 border-dashed px-4 py-8 text-center transition-colors",
-            over ? "border-magenta bg-magenta-50" : "border-titanio/60 bg-white hover:border-estrato hover:bg-estelar",
+            "mt-1.5 flex w-full flex-col items-center rounded border-2 border-dashed px-4 py-8 text-center transition-colors",
+            over ? "border-acao bg-magenta-50" : "border-titanio/60 bg-white hover:border-estrato hover:bg-estelar",
             shownError && "border-danger",
             "disabled:cursor-not-allowed disabled:opacity-50",
           )}

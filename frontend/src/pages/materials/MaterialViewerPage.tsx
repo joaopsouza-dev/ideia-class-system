@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, CalendarDays, FlaskConical, Info, Lock, ShieldAlert, UserRound } from "lucide-react";
-import { TypeTile, detalheMidia, tipoLabel } from "@/components/materials/MaterialCard";
+import { MaterialCover, detalheMidia, tipoLabel } from "@/components/materials/MaterialCard";
 import { PdfViewer } from "@/components/viewer/PdfViewer";
 import { VideoPlayer } from "@/components/viewer/VideoPlayer";
 import { Badge } from "@/components/ui/Badge";
@@ -42,17 +42,17 @@ export default function MaterialViewerPage() {
       </button>
 
       <header className="mb-5 flex items-start gap-4">
-        <TypeTile tipo={c.tipo} className="size-14" />
+        <MaterialCover c={c} />
         <div className="min-w-0">
-          <p className="font-ui text-[11px] font-semibold uppercase tracking-[0.18em] text-magenta">
+          <p className="lbl text-acao-700">
             {tipoLabel(c.tipo)} · {c.turma.rotulo}
           </p>
-          <h1 className="text-2xl sm:text-3xl">{c.titulo}</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">{c.titulo}</h1>
         </div>
       </header>
 
-      <div className="mb-4 flex items-start gap-3 rounded-xl border border-estrato/15 bg-white px-4 py-3 text-sm text-ink-soft">
-        <Lock className="mt-0.5 size-4 shrink-0 text-magenta" aria-hidden />
+      <div className="mb-4 flex items-start gap-3 rounded border border-line bg-white px-4 py-3 text-sm text-ink-soft">
+        <Lock className="mt-0.5 size-4 shrink-0 text-acao-700" aria-hidden />
         <p>
           <strong className="text-ink">Conteúdo protegido.</strong> Sem botão de download · marca d'água com sua
           identificação · ações registradas.
@@ -84,25 +84,25 @@ export default function MaterialViewerPage() {
 
       <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_20rem]">
         <Card>
-          <h2 className="text-lg">Sobre este material</h2>
+          <h2 className="text-[22px]">Sobre este material</h2>
           <p className="mt-2 text-sm text-ink-soft">{c.descricao || "Sem descrição."}</p>
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
             <div className="flex items-center gap-2">
-              <UserRound className="size-4 text-titanio" aria-hidden />
+              <UserRound className="size-4 text-ink-mute" strokeWidth={1.75} aria-hidden />
               <div>
                 <dt className="text-xs text-ink-soft">Professor</dt>
                 <dd className="font-medium">{c.professor.nome}</dd>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <CalendarDays className="size-4 text-titanio" aria-hidden />
+              <CalendarDays className="size-4 text-ink-mute" strokeWidth={1.75} aria-hidden />
               <div>
                 <dt className="text-xs text-ink-soft">Publicação</dt>
                 <dd className="font-medium">{formatDate(c.criadoEm)}</dd>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Info className="size-4 text-titanio" aria-hidden />
+              <Info className="size-4 text-ink-mute" strokeWidth={1.75} aria-hidden />
               <div>
                 <dt className="text-xs text-ink-soft">Detalhes</dt>
                 <dd className="font-medium">{c.tipo === "PDF" && pdfTotal ? `${pdfTotal} págs` : detalheMidia(c)}</dd>
@@ -127,7 +127,7 @@ export default function MaterialViewerPage() {
 
         <Card className="bg-estelar">
           <h2 className="flex items-center gap-2 text-base">
-            <ShieldAlert className="size-4 text-magenta" aria-hidden /> Sobre a proteção
+            <ShieldAlert className="size-4 text-acao-700" aria-hidden /> Sobre a proteção
           </h2>
           <p className="mt-2 text-sm text-ink-soft">
             A marca d'água com seu nome e sessão, o bloqueio de atalhos e o registro de tentativas servem para{" "}
@@ -136,7 +136,7 @@ export default function MaterialViewerPage() {
           <p className="mt-2 text-sm text-ink-soft">
             Eles não impedem, por exemplo, uma foto da tela com outro dispositivo.
           </p>
-          <Link to="/biblioteca" className="mt-3 inline-block text-sm font-semibold text-magenta-700 hover:underline">
+          <Link to="/biblioteca" className="mt-3 inline-block text-sm font-semibold text-acao-700 hover:underline">
             Ver mais materiais
           </Link>
         </Card>

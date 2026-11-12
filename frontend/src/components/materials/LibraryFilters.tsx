@@ -18,17 +18,17 @@ export function LibraryFilters({ filters, update, reset, active, items, showStat
   const disciplinas = Array.from(new Map(items.map((c) => [c.turma.disciplinaId, c.turma.disciplinaNome])));
   const turmas = Array.from(new Map(items.map((c) => [c.turma.id, c.turma.rotulo])));
   return (
-    <div className="mb-5 rounded-2xl border border-line bg-white p-3 shadow-card">
+    <div className="mb-6">
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-56 flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-titanio" aria-hidden />
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-mute" strokeWidth={1.75} aria-hidden />
           <input
             type="search"
             value={filters.busca}
             onChange={(e) => update("busca", e.target.value)}
             placeholder="Buscar por título, descrição, turma ou professor"
             aria-label="Buscar materiais"
-            className="h-10 w-full rounded-lg border border-line bg-white pl-9 pr-3 text-sm placeholder:text-titanio hover:border-estrato/40 focus:border-estrato focus:outline-none focus:ring-2 focus:ring-ciano/60"
+            className="h-[34px] w-full rounded border border-line-strong bg-white pl-9 pr-3 text-[13px] placeholder:text-ink-mute hover:border-estrato/60 focus:border-estrato focus:outline-none focus:ring-2 focus:ring-ciano/60"
           />
         </div>
         <FilterSelect label="Tipo" value={filters.tipo} onChange={(e) => update("tipo", e.target.value as Filters["tipo"])}>

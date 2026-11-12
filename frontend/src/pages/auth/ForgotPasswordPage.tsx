@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
             Se existir uma conta para <strong>{email}</strong>, as instruções serão enviadas. (Demonstração: nenhum
             e-mail é realmente enviado.)
           </p>
-          <Link to="/login" className="mt-6 inline-block text-sm font-semibold text-magenta-700 hover:underline">
+          <Link to="/login" className="mt-6 inline-block text-sm font-semibold text-acao-700 hover:underline">
             Voltar para o login
           </Link>
         </div>
@@ -59,7 +59,7 @@ export default function ForgotPasswordPage() {
             Enviar instruções
           </Button>
           <p className="text-center text-sm">
-            <Link to="/login" className="font-semibold text-magenta-700 hover:underline">
+            <Link to="/login" className="font-semibold text-acao-700 hover:underline">
               Voltar para o login
             </Link>
           </p>

@@ -30,7 +30,7 @@ export function AppShell() {
   }
 
   const sidebar = (
-    <div className="starfield flex h-full flex-col bg-vacuo text-white">
+    <div className="flex h-full flex-col bg-vacuo text-white">
       <div className="flex h-16 items-center justify-between px-5">
         <Logo />
         <button
@@ -50,10 +50,10 @@ export function AppShell() {
             end={end}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 font-ui text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded px-3.5 py-2.5 font-ui text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-magenta text-white shadow-sm"
-                  : "text-white/75 hover:bg-white/10 hover:text-white",
+                  ? "bg-estrato text-white shadow-[inset_3px_0_0_var(--color-magenta)]"
+                  : "text-[#b8c0dc] hover:bg-white/10 hover:text-white",
               )
             }
           >
@@ -62,7 +62,7 @@ export function AppShell() {
           </NavLink>
         ))}
       </nav>
-      <div className="m-3 rounded-xl border border-white/10 bg-white/5 p-3.5">
+      <div className="m-3 rounded border border-vacuo-line p-3.5">
         <div className="flex items-center gap-2 font-ui text-xs font-semibold text-ciano">
           <ShieldCheck className="size-4" aria-hidden />
           Conteúdo protegido

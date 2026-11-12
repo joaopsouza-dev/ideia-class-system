@@ -117,7 +117,7 @@ export default function RegisterPage() {
               type="checkbox"
               checked={form.termos}
               onChange={(e) => set("termos", e.target.checked)}
-              className="mt-0.5 size-4 accent-magenta"
+              className="mt-0.5 size-4 accent-acao"
             />
             <span>
               Concordo que meu nome, e-mail e acessos serão registrados e exibidos como marca d'água nos conteúdos
@@ -132,7 +132,7 @@ export default function RegisterPage() {
       </form>
       <p className="mt-5 text-center text-sm text-ink-soft">
         Já tem uma conta?{" "}
-        <Link to="/login" className="font-semibold text-magenta-700 hover:underline">
+        <Link to="/login" className="font-semibold text-acao-700 hover:underline">
           Faça seu login
         </Link>
       </p>

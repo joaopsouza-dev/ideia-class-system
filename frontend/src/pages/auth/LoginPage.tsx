@@ -86,7 +86,7 @@ export default function LoginPage() {
           }
         />
         <div className="flex justify-end">
-          <Link to="/recuperar-senha" className="text-sm font-medium text-magenta-700 hover:underline">
+          <Link to="/recuperar-senha" className="text-sm font-medium text-acao-700 hover:underline">
             Esqueci minha senha
           </Link>
         </div>
@@ -97,13 +97,13 @@ export default function LoginPage() {
 
       <p className="mt-5 text-center text-sm text-ink-soft">
         Não tem uma conta?{" "}
-        <Link to="/cadastro" className="font-semibold text-magenta-700 hover:underline">
+        <Link to="/cadastro" className="font-semibold text-acao-700 hover:underline">
           Cadastre-se
         </Link>
       </p>
 
       {isDemoMode && (
-        <div className="mt-6 rounded-xl border border-ciano/50 bg-ciano-50 p-4">
+        <div className="mt-6 rounded border border-ciano/50 bg-ciano-50 p-4">
           <p className="font-ui text-xs font-semibold uppercase tracking-wider text-ciano-700">
             Contas de demonstração
           </p>

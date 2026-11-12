@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
-import { GraduationCap, Library, ShieldAlert, Users } from "lucide-react";
 import { ActivityList, isAlerta } from "@/components/materials/ActivityList";
-import { Card, PageHeader, StatCard } from "@/components/ui/Card";
+import { Card, PageHeader, TelemetryStrip } from "@/components/ui/Card";
 import { Skeleton } from "@/components/ui/States";
 import { useSessao } from "@/context/AuthContext";
 import { useAsync } from "@/hooks/useAsync";
@@ -24,22 +23,23 @@ export default function AdminDashboard() {
   return (
     <>
       <PageHeader eyebrow="Administração" title="Painel administrativo" description="Visão geral de usuários, turmas, conteúdos e eventos de segurança." />
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {loading ? (
-          Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-28" />)
-        ) : (
-          <>
-            <StatCard label="Usuários" value={u.length} hint={`${u.filter((x) => x.statusAtivo).length} ativos · ${u.filter((x) => !x.statusAtivo).length} inativos`} icon={Users} accent="magenta" />
-            <StatCard label="Turmas" value={turmas.data!.length} hint="semestre 2026/2" icon={GraduationCap} accent="ciano" />
-            <StatCard label="Materiais" value={mats.data!.length} hint={`${mats.data!.filter((c) => c.status === "PUBLICADO").length} publicados`} icon={Library} accent="nebulosa" />
-            <StatCard label="Alertas" value={alertas} hint="tentativas bloqueadas (7 dias)" icon={ShieldAlert} accent="estrato" />
-          </>
-        )}
-      </div>
+      {loading ? (
+        <Skeleton className="h-32" />
+      ) : (
+        <TelemetryStrip
+          label="Telemetria da plataforma"
+          items={[
+            { label: "Usuários", value: u.length, hint: `${u.filter((x) => x.statusAtivo).length} ativos · ${u.filter((x) => !x.statusAtivo).length} inativos` },
+            { label: "Turmas", value: turmas.data!.length, hint: "semestre 2026/2", tone: "ciano" },
+            { label: "Materiais", value: mats.data!.length, hint: `${mats.data!.filter((c) => c.status === "PUBLICADO").length} publicados` },
+            { label: "Alertas", value: alertas, hint: "tentativas bloqueadas (7 dias)", tone: "alerta" },
+          ]}
+        />
+      )}
       <Card className="mt-6">
         <div className="mb-1 flex items-center justify-between">
-          <h2 className="text-lg">Eventos recentes</h2>
-          <Link to="/auditoria" className="text-sm font-semibold text-magenta-700 hover:underline">
+          <h2 className="text-[22px]">Eventos recentes</h2>
+          <Link to="/auditoria" className="text-sm font-semibold text-acao-700 hover:underline">
             Abrir auditoria
           </Link>
         </div>

@@ -199,8 +199,8 @@ export default function MaterialEditorPage() {
                   <label
                     key={value}
                     className={cn(
-                      "flex cursor-pointer items-start gap-3 rounded-xl border p-3.5 transition-colors",
-                      status === value ? "border-magenta bg-magenta-50" : "border-line hover:border-estrato/40",
+                      "flex cursor-pointer items-start gap-3 rounded border p-3.5 transition-colors",
+                      status === value ? "border-acao bg-magenta-50" : "border-line hover:border-estrato/40",
                     )}
                   >
                     <input
@@ -209,7 +209,7 @@ export default function MaterialEditorPage() {
                       value={value}
                       checked={status === value}
                       onChange={() => setStatus(value)}
-                      className="mt-1 accent-magenta"
+                      className="mt-1 accent-acao"
                     />
                     <span>
                       <span className="block text-sm font-semibold">{title}</span>
@@ -222,13 +222,13 @@ export default function MaterialEditorPage() {
           </fieldset>
 
           {saving && (
-            <div role="status" aria-live="polite" className="rounded-xl border border-ciano/50 bg-ciano-50 p-4">
+            <div role="status" aria-live="polite" className="rounded border border-ciano/50 bg-ciano-50 p-4">
               <div className="flex items-center justify-between text-sm font-semibold">
                 <span>Enviando{arquivo ? ` ${arquivo.name}` : ""}…</span>
                 <span className="tabular-nums">{progress}%</span>
               </div>
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-white" role="progressbar" aria-valuenow={progress ?? 0} aria-valuemin={0} aria-valuemax={100}>
-                <div className="h-full rounded-full bg-magenta transition-all" style={{ width: `${progress}%` }} />
+                <div className="h-full rounded-full bg-acao transition-all" style={{ width: `${progress}%` }} />
               </div>
               <p className="mt-2 text-xs text-ink-soft">
                 {arquivo ? formatBytes(arquivo.size) : ""} · envio simulado no navegador (nenhum arquivo sai deste dispositivo).

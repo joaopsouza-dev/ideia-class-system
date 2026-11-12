@@ -5,7 +5,7 @@ type Tone = "neutral" | "magenta" | "ciano" | "nebulosa" | "ok" | "warn" | "dang
 
 const tones: Record<Tone, string> = {
   neutral: "bg-estelar text-ink-soft ring-line",
-  magenta: "bg-magenta-50 text-magenta-700 ring-magenta/25",
+  magenta: "bg-magenta-50 text-acao-700 ring-acao-700/40",
   ciano: "bg-ciano-50 text-ciano-700 ring-ciano/40",
   nebulosa: "bg-nebulosa-50 text-nebulosa ring-nebulosa/25",
   ok: "bg-ok-50 text-ok ring-ok/25",
@@ -28,7 +28,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-0.5 font-ui text-xs font-medium ring-1 ring-inset",
+        "inline-flex items-center gap-1 whitespace-nowrap rounded-[3px] px-2 py-0.5 font-ui text-[10.5px] font-semibold uppercase tracking-[0.1em] ring-1 ring-inset",
         tones[tone],
         className,
       )}

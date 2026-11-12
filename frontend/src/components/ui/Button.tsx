@@ -7,20 +7,20 @@ type Variant = "primary" | "secondary" | "ghost" | "danger" | "dark";
 type Size = "sm" | "md" | "lg";
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-lg font-ui font-medium transition-colors select-none " +
+  "inline-flex items-center justify-center gap-2 rounded font-ui font-semibold uppercase tracking-[0.1em] transition-colors select-none " +
   "disabled:cursor-not-allowed disabled:opacity-50 active:translate-y-px";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-magenta text-white hover:bg-magenta-700 active:bg-magenta-700 shadow-sm",
-  secondary: "border border-line bg-white text-ink hover:border-estrato/40 hover:bg-estelar",
+  primary: "bg-acao text-white hover:bg-acao-700 active:bg-acao-700",
+  secondary: "border border-line-strong bg-white text-estrato hover:border-estrato hover:bg-estelar",
   ghost: "text-ink hover:bg-estrato/8",
   danger: "bg-danger text-white hover:bg-danger/90",
   dark: "bg-estrato text-white hover:bg-estrato-700",
 };
 const sizes: Record<Size, string> = {
-  sm: "h-8 px-3 text-sm",
-  md: "h-10 px-4 text-sm",
-  lg: "h-12 px-6 text-base",
+  sm: "h-8 px-3 text-[11px]",
+  md: "h-10 px-4 text-xs",
+  lg: "h-12 px-6 text-[13px]",
 };
 
 export function buttonClass(variant: Variant = "primary", size: Size = "md", extra?: string) {
@@ -74,7 +74,7 @@ export function IconButton({
       aria-label={label}
       title={label}
       className={cn(
-        "inline-flex size-9 items-center justify-center rounded-lg text-ink-soft transition-colors hover:bg-estrato/8 hover:text-ink",
+        "inline-flex size-9 items-center justify-center rounded text-ink-soft transition-colors hover:bg-estrato/8 hover:text-ink",
         "disabled:cursor-not-allowed disabled:opacity-40",
         className,
       )}

@@ -72,7 +72,7 @@ export function Modal({ open, title, onClose, children, footer, size = "md", loc
         aria-label={title}
         tabIndex={-1}
         className={cn(
-          "relative flex max-h-[92dvh] w-full flex-col rounded-t-2xl bg-white shadow-pop sm:rounded-2xl",
+          "relative flex max-h-[92dvh] w-full flex-col rounded-t-lg bg-white shadow-pop sm:rounded-lg",
           size === "sm" && "sm:max-w-md",
           size === "md" && "sm:max-w-xl",
           size === "lg" && "sm:max-w-3xl",

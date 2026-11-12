@@ -171,11 +171,11 @@ export function PdfViewer({ url, sessao, conteudoId, initialPage = 1, onPageChan
       onKeyDown={onKeyDown}
       aria-label="Visualizador de PDF"
       className={cn(
-        "flex min-h-0 flex-col overflow-hidden rounded-2xl bg-vacuo outline-offset-4",
+        "flex min-h-0 flex-col overflow-hidden rounded-lg bg-vacuo outline-offset-4",
         fullscreen ? "h-dvh rounded-none" : "h-[calc(100dvh-15rem)] min-h-[420px]",
       )}
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 bg-estrato px-3 py-2 text-white">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-vacuo-line bg-vacuo px-3 py-2 text-white">
         <div className="flex items-center gap-1">
           <IconButton label="Página anterior" onClick={() => go(page - 1)} disabled={page <= 1} className="text-white hover:bg-white/10 hover:text-white">
             <ChevronLeft className="size-5" aria-hidden />
@@ -189,7 +189,7 @@ export function PdfViewer({ url, sessao, conteudoId, initialPage = 1, onPageChan
               value={page}
               disabled={!total}
               onChange={(e) => e.target.value && go(Number(e.target.value))}
-              className="h-8 w-14 rounded-md border border-white/20 bg-white/10 px-2 text-center tabular-nums text-white focus:border-ciano focus:outline-none"
+              className="h-8 w-14 rounded border border-[#3a3396] bg-transparent px-2 text-center tabular-nums text-white focus:border-ciano focus:outline-none"
             />
             <span aria-live="polite" className="text-white/80">
               / {total || "–"}

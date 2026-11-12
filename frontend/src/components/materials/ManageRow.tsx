@@ -17,10 +17,10 @@ interface Props {
 export function ManageRow({ c, busy, onToggleStatus, onDelete }: Props) {
   const publicado = c.status === "PUBLICADO";
   return (
-    <li className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border border-line bg-white p-4 shadow-card sm:flex-nowrap">
+    <li className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded border border-line bg-white p-4 sm:flex-nowrap">
       <TypeTile tipo={c.tipo} />
       <div className="min-w-0 flex-1 basis-56">
-        <Link to={`/material/${c.id}`} className="block truncate font-semibold hover:text-magenta-700 hover:underline">
+        <Link to={`/material/${c.id}`} className="block truncate font-semibold hover:text-acao-700 hover:underline">
           {c.titulo}
         </Link>
         <p className="mt-0.5 truncate text-xs text-ink-soft">
@@ -33,7 +33,7 @@ export function ManageRow({ c, busy, onToggleStatus, onDelete }: Props) {
           Abrir
         </Link>
         <Link to={`/materiais/${c.id}/editar`} className="inline-flex" aria-label={`Editar ${c.titulo}`} title="Editar">
-          <span className="inline-flex size-9 items-center justify-center rounded-lg text-ink-soft transition-colors hover:bg-estrato/8 hover:text-ink">
+          <span className="inline-flex size-9 items-center justify-center rounded text-ink-soft transition-colors hover:bg-estrato/8 hover:text-ink">
             <Pencil className="size-[18px]" aria-hidden />
           </span>
         </Link>

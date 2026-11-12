@@ -1,10 +1,10 @@
 import { Link } from "react-router-dom";
-import { Eye, FileClock, GraduationCap, Library, Plus, ShieldAlert } from "lucide-react";
+import { GraduationCap, Plus } from "lucide-react";
 import { ActivityList, isAlerta } from "@/components/materials/ActivityList";
 import { TypeTile, detalheMidia } from "@/components/materials/MaterialCard";
 import { Badge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
-import { Card, PageHeader, StatCard } from "@/components/ui/Card";
+import { Card, PageHeader, TelemetryStrip } from "@/components/ui/Card";
 import { ErrorState, Skeleton } from "@/components/ui/States";
 import { useSessao } from "@/context/AuthContext";
 import { useAsync } from "@/hooks/useAsync";
@@ -43,25 +43,26 @@ export default function TeacherDashboard() {
       {mats.error ? (
         <ErrorState message={mats.error} onRetry={mats.reload} />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {mats.loading && !mats.data ? (
-            Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-28" />)
-          ) : (
-            <>
-              <StatCard label="Publicados" value={publicados} hint="visíveis aos alunos" icon={Library} accent="magenta" />
-              <StatCard label="Rascunhos" value={rascunhos} hint="aguardando publicação" icon={FileClock} accent="nebulosa" />
-              <StatCard label="Visualizações" value={visualizacoes} hint="nos últimos 7 dias" icon={Eye} accent="ciano" />
-              <StatCard label="Alertas" value={alertas} hint="tentativas bloqueadas (7 dias)" icon={ShieldAlert} accent="estrato" />
-            </>
-          )}
-        </div>
+        mats.loading && !mats.data ? (
+          <Skeleton className="h-32" />
+        ) : (
+          <TelemetryStrip
+            label="Telemetria dos seus materiais"
+            items={[
+              { label: "Publicados", value: publicados, hint: "visíveis aos alunos" },
+              { label: "Rascunhos", value: rascunhos, hint: "aguardando publicação", tone: "alerta" },
+              { label: "Visualizações", value: visualizacoes, hint: "nos últimos 7 dias", tone: "ciano" },
+              { label: "Alertas", value: alertas, hint: "tentativas bloqueadas (7 dias)" },
+            ]}
+          />
+        )
       )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <Card>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg">Materiais recentes</h2>
-            <Link to="/biblioteca" className="text-sm font-semibold text-magenta-700 hover:underline">
+            <h2 className="text-[22px]">Materiais recentes</h2>
+            <Link to="/biblioteca" className="text-sm font-semibold text-acao-700 hover:underline">
               Ver biblioteca
             </Link>
           </div>
@@ -78,7 +79,7 @@ export default function TeacherDashboard() {
                   <li key={c.id} className="flex items-center gap-3 py-3">
                     <TypeTile tipo={c.tipo} className="size-10" />
                     <div className="min-w-0 flex-1">
-                      <Link to={`/material/${c.id}`} className="block truncate text-sm font-semibold hover:text-magenta-700 hover:underline">
+                      <Link to={`/material/${c.id}`} className="block truncate text-sm font-semibold hover:text-acao-700 hover:underline">
                         {c.titulo}
                       </Link>
                       <p className="truncate text-xs text-ink-soft">
@@ -96,7 +97,7 @@ export default function TeacherDashboard() {
 
         <div className="space-y-6">
           <Card>
-            <h2 className="mb-3 text-lg">Minhas turmas</h2>
+            <h2 className="mb-3 text-[22px]">Minhas turmas</h2>
             {turmas.loading && !turmas.data ? (
               <Skeleton className="h-24" />
             ) : (
@@ -105,7 +106,7 @@ export default function TeacherDashboard() {
                   <li key={t.id}>
                     <Link
                       to={`/turmas/${t.id}`}
-                      className="flex items-center gap-3 rounded-xl border border-line p-3 transition-colors hover:border-magenta/50 hover:bg-estelar"
+                      className="flex items-center gap-3 rounded border border-line p-3 transition-colors hover:border-acao/50 hover:bg-estelar"
                     >
                       <GraduationCap className="size-5 text-estrato" aria-hidden />
                       <span className="min-w-0 flex-1">
@@ -122,8 +123,8 @@ export default function TeacherDashboard() {
           </Card>
           <Card>
             <div className="mb-1 flex items-center justify-between">
-              <h2 className="text-lg">Atividade recente</h2>
-              <Link to="/auditoria" className="text-sm font-semibold text-magenta-700 hover:underline">
+              <h2 className="text-[22px]">Atividade recente</h2>
+              <Link to="/auditoria" className="text-sm font-semibold text-acao-700 hover:underline">
                 Ver tudo
               </Link>
             </div>

@@ -10,8 +10,8 @@ interface Shared {
 }
 
 const controlBase =
-  "w-full rounded-lg border bg-white px-3 text-sm text-ink placeholder:text-titanio transition-colors " +
-  "hover:border-estrato/40 focus:border-estrato focus:outline-none focus:ring-2 focus:ring-ciano/60 " +
+  "rounded border bg-white px-3.5 text-ink placeholder:text-ink-mute transition-colors " +
+  "hover:border-estrato/60 focus:border-estrato focus:outline-none focus:ring-2 focus:ring-ciano/60 " +
   "disabled:cursor-not-allowed disabled:bg-estelar disabled:text-ink-soft";
 
 function Wrapper({
@@ -24,10 +24,10 @@ function Wrapper({
 }: Shared & { id: string; children: ReactNode; required?: boolean }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="font-ui text-[13px] font-medium text-ink">
+      <label htmlFor={id} className="text-[13px] font-semibold text-ink">
         {label}
         {required && (
-          <span className="text-magenta" aria-hidden>
+          <span className="text-acao" aria-hidden>
             {" "}
             *
           </span>
@@ -62,8 +62,8 @@ export const TextField = forwardRef<HTMLInputElement, Shared & InputHTMLAttribut
             aria-describedby={error ? `${fid}-err` : hint ? `${fid}-hint` : undefined}
             className={cn(
               controlBase,
-              "h-11",
-              error ? "border-danger" : "border-line",
+              "w-full h-11 text-[15px]",
+              error ? "border-danger" : "border-line-strong",
               trailing ? "pr-11" : undefined,
               className,
             )}
@@ -90,7 +90,7 @@ export const SelectField = forwardRef<
         required={required}
         aria-invalid={!!error || undefined}
         aria-describedby={error ? `${fid}-err` : undefined}
-        className={cn(controlBase, "h-11", error ? "border-danger" : "border-line", className)}
+        className={cn(controlBase, "w-full h-11 text-[15px]", error ? "border-danger" : "border-line-strong", className)}
         {...rest}
       >
         {children}
@@ -113,7 +113,7 @@ export const TextAreaField = forwardRef<
         required={required}
         aria-invalid={!!error || undefined}
         aria-describedby={error ? `${fid}-err` : hint ? `${fid}-hint` : undefined}
-        className={cn(controlBase, "min-h-24 py-2.5", error ? "border-danger" : "border-line", className)}
+        className={cn(controlBase, "w-full min-h-24 py-2.5 text-[15px]", error ? "border-danger" : "border-line-strong", className)}
         {...rest}
       />
     </Wrapper>
@@ -130,7 +130,7 @@ export function FilterSelect({
   return (
     <select
       aria-label={label}
-      className={cn(controlBase, "h-10 w-auto min-w-0 border-line pr-8", className)}
+      className={cn(controlBase, "h-[34px] w-auto min-w-0 border-line-strong pr-8 text-[13px] font-semibold text-estrato", className)}
       {...rest}
     >
       {children}

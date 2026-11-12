@@ -26,11 +26,17 @@ export default function LibraryPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const progress = useMemo(() => readProgress(sessao.usuario.id), [sessao.usuario.id, data]);
 
+  const grupos = useMemo(() => {
+    const m = new Map<string, typeof lib.paged>();
+    for (const c of lib.paged) m.set(c.turma.disciplinaNome, [...(m.get(c.turma.disciplinaNome) ?? []), c]);
+    return Array.from(m.entries());
+  }, [lib.paged]);
+
   return (
     <>
       <PageHeader
         eyebrow={manage ? "Gestão de conteúdos" : "Acervo"}
-        title="Biblioteca de materiais"
+        title="Biblioteca"
         description={
           manage
             ? "Gerencie apostilas e videoaulas das suas turmas: publique, edite ou exclua."
@@ -84,9 +90,21 @@ export default function LibraryPage() {
           ) : manage ? (
             <ManageList items={lib.paged} onChanged={reload} />
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {lib.paged.map((c) => (
-                <MaterialCard key={c.id} c={c} progress={progress[c.id]} />
+            <div className="space-y-8">
+              {grupos.map(([nome, itens]) => (
+                <section key={nome} aria-label={nome}>
+                  <div className="flex flex-wrap items-baseline gap-3">
+                    <h2 className="text-[22px] font-bold">{nome}</h2>
+                    <span className="lbl text-ink-mute">
+                      {itens[0].turma.rotulo} · {itens.length} {itens.length === 1 ? "material" : "materiais"}
+                    </span>
+                  </div>
+                  <div className="mt-3">
+                    {itens.map((c) => (
+                      <MaterialCard key={c.id} c={c} progress={progress[c.id]} />
+                    ))}
+                  </div>
+                </section>
               ))}
             </div>
           )}

@@ -128,7 +128,7 @@ export function VideoPlayer({ src, poster, title, sessao, conteudoId, initialTim
       onKeyDown={onKeyDown}
       onMouseMove={poke}
       aria-label={`Player de vídeo: ${title}`}
-      className={cn("overflow-hidden rounded-2xl bg-black outline-offset-4", fullscreen && "rounded-none")}
+      className={cn("overflow-hidden rounded-lg bg-black outline-offset-4", fullscreen && "rounded-none")}
     >
       <ProtectedSurface
         sessao={sessao}
@@ -201,7 +201,7 @@ export function VideoPlayer({ src, poster, title, sessao, conteudoId, initialTim
             aria-label={ended ? "Assistir novamente" : "Reproduzir"}
             className="absolute inset-0 z-[33] grid place-items-center"
           >
-            <span className="grid size-20 place-items-center rounded-full bg-magenta text-white shadow-pop transition-transform hover:scale-105">
+            <span className="grid size-20 place-items-center rounded-full bg-acao text-white shadow-pop transition-transform hover:scale-105">
               {ended ? <RotateCcw className="size-8" aria-hidden /> : <Play className="ml-1 size-9" aria-hidden />}
             </span>
           </button>
@@ -273,7 +273,7 @@ export function VideoPlayer({ src, poster, title, sessao, conteudoId, initialTim
             <button
               type="button"
               onClick={() => setSpeedIdx((i) => (i + 1) % SPEEDS.length)}
-              className="h-8 rounded-md px-2 font-ui text-xs font-semibold text-white hover:bg-white/15"
+              className="h-8 rounded px-2 font-ui text-xs font-semibold text-white hover:bg-white/15"
               aria-label={`Velocidade de reprodução: ${speed}x. Alterar`}
             >
               {speed}x
