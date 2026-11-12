@@ -5,7 +5,7 @@ import { Logo } from "@/components/brand/Logo";
 import { IconButton } from "@/components/ui/Button";
 import { useAuth, useSessao } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
-import { isDemoMode } from "@/services";
+import { isDemoMode, isMockAuth } from "@/services";
 import { cn } from "@/utils/cn";
 import { initials } from "@/utils/format";
 import { NAV, PERFIL_LABEL } from "./nav";
@@ -118,8 +118,15 @@ export function AppShell() {
           >
             <FlaskConical className="size-3.5 shrink-0 text-ciano" aria-hidden />
             <span>
-              <strong className="text-ciano">Modo demonstração</strong> — dados e operações simulados no
-              navegador; ainda não há servidor.
+              {isMockAuth ? (
+                <>
+                  <strong className="text-ciano">Modo demonstração</strong> — autenticação e dados acadêmicos simulados no navegador.
+                </>
+              ) : (
+                <>
+                  <strong className="text-ciano">Ambiente híbrido</strong> — autenticação real via backend; turmas, materiais e logs com dados simulados nesta etapa.
+                </>
+              )}
             </span>
           </div>
         )}

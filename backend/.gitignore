@@ -1,0 +1,7 @@
+# Arquivo de ambiente real: contém segredos. Use .env.example como modelo.
+.env
+.env.*
+!.env.example
+
+# Estado local da IDE (pode conter configurações sensíveis)
+.idea/workspace.xml

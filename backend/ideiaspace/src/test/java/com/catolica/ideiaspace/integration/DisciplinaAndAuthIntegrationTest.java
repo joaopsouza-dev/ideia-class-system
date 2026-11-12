@@ -57,8 +57,8 @@ class DisciplinaAndAuthIntegrationTest {
 
     @Test
     @Order(1)
-    @DisplayName("Provisionamento do primeiro administrador via /api/v1/auth/provision")
-    void test01_provisionInitialAdmin() throws Exception {
+    @DisplayName("Provisionamento sem autenticação é recusado com 401")
+    void test01_provisionWithoutAuthIsRejected() throws Exception {
         String json = """
             {
                 "nomeCompleto": "Admin Integracao",
@@ -68,10 +68,12 @@ class DisciplinaAndAuthIntegrationTest {
             }
             """;
 
-        // Pode retornar 201 se for o primeiro, ou 403 se já existir admin
+        // Fase 0: o primeiro administrador vem do bootstrap de inicialização (APP_BOOTSTRAP_ADMIN_*),
+        // não de uma chamada anônima. Sem token, o provisionamento deve ser recusado.
         mockMvc.perform(post("/api/v1/auth/provision")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(json));
+                .content(json))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

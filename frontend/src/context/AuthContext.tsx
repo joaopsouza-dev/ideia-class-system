@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { services } from "@/services";
+import { httpClient, services } from "@/services";
 import type { Sessao } from "@/types";
 
 interface AuthContextValue {
@@ -23,8 +23,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((s) => alive && setSessao(s))
       .catch(() => undefined)
       .finally(() => alive && setRestoring(false));
+
+    // Desautentica imediatamente no frontend caso uma requisição autenticada receba 401 (token expirado/inválido)
+    const unsubscribe = httpClient.onUnauthorized(() => {
+      if (alive) {
+        services.auth.logout({} as Sessao).catch(() => undefined);
+        setSessao(null);
+      }
+    });
+
     return () => {
       alive = false;
+      unsubscribe();
     };
   }, []);
 

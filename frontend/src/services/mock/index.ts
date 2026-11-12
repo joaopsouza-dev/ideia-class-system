@@ -216,6 +216,8 @@ export const mockServices: Services = {
       await delay(300);
       return db.usuarios.map<UsuarioAdmin>((u) => ({
         ...u,
+        statusAtivo: u.statusAtivo ?? true,
+        criadoEm: u.criadoEm ?? "",
         turmas: db.turmaUsuarios
           .filter((tu) => tu.usuarioId === u.id)
           .map((tu) => ({ id: tu.turmaId, rotulo: turmaResumo(tu.turmaId).rotulo, papel: tu.papelNaTurma })),

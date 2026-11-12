@@ -55,6 +55,7 @@ class TurmaAndParticipantesIntegrationTest {
     private static Long disciplinaId;
     private static Long turmaId;
     private static Long vinculoDocenteId;
+    private static Long vinculoAlunoId;
 
     private static final String UNIQUE_SUFFIX = UUID.randomUUID().toString().substring(0, 6).toUpperCase();
     private static final String DISC_CODE = "DISC-T-" + UNIQUE_SUFFIX;

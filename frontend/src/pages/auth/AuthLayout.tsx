@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { FlaskConical, Lock } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
-import { isDemoMode } from "@/services";
+import { isDemoMode, isMockAuth } from "@/services";
 
 /** Esquema orbital decorativo (assinatura "trilha orbital" + grade técnica). */
 function OrbitScheme() {
@@ -55,7 +55,15 @@ export function AuthLayout({ title, subtitle, children }: { title: string; subti
                 {isDemoMode && (
                   <>
                     {" "}
-                    <strong className="text-ink">Modo demonstração</strong> — autenticação simulada.
+                    {isMockAuth ? (
+                      <>
+                        <strong className="text-ink">Modo demonstração</strong> — autenticação simulada.
+                      </>
+                    ) : (
+                      <>
+                        <strong className="text-ink">Ambiente híbrido</strong> — autenticação real via backend (dados acadêmicos simulados).
+                      </>
+                    )}
                   </>
                 )}
               </p>

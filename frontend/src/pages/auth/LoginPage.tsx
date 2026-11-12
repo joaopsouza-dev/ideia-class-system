@@ -6,7 +6,7 @@ import { TextField } from "@/components/ui/Field";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
-import { errorMessage, isDemoMode } from "@/services";
+import { errorMessage, isDemoMode, isMockAuth } from "@/services";
 import { DEMO_PASSWORD } from "@/mocks/seed";
 import { validateEmail, validatePassword } from "@/utils/validation";
 import { AuthLayout } from "./AuthLayout";
@@ -102,7 +102,7 @@ export default function LoginPage() {
         </Link>
       </p>
 
-      {isDemoMode && (
+      {isMockAuth ? (
         <div className="mt-6 rounded border border-ciano/50 bg-ciano-50 p-4">
           <p className="font-ui text-xs font-semibold uppercase tracking-wider text-ciano-700">
             Contas de demonstração
@@ -130,7 +130,17 @@ export default function LoginPage() {
             ))}
           </div>
         </div>
-      )}
+      ) : isDemoMode ? (
+        <div className="mt-6 rounded border border-ciano/50 bg-ciano-50/60 p-4">
+          <div className="flex items-center gap-2 font-ui text-xs font-semibold uppercase tracking-wider text-ciano-800">
+            <span className="inline-block size-2 rounded-full bg-ciano-600 animate-pulse" />
+            Autenticação real ativa
+          </div>
+          <p className="mt-1.5 text-xs leading-relaxed text-ink-soft">
+            Login integrado ao backend. Entre com as credenciais cadastradas no banco de dados. Os dados de turmas e materiais operam em modo simulado nesta etapa.
+          </p>
+        </div>
+      ) : null}
     </AuthLayout>
   );
 }

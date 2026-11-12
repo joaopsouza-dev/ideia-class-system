@@ -13,13 +13,13 @@ export type StatusPublicacao = "PUBLICADO" | "RASCUNHO";
 
 export interface Usuario {
   id: number;
-  /** uuid_publico do banco — é o identificador que deve trafegar na API */
-  uuidPublico: string;
   nomeCompleto: string;
   email: string;
   perfil: Perfil;
-  statusAtivo: boolean;
-  criadoEm: string;
+  /** Presente em dados de mock ou quando fornecido explicitamente no futuro */
+  uuidPublico?: string;
+  statusAtivo?: boolean;
+  criadoEm?: string;
 }
 
 export interface Disciplina {
@@ -104,6 +104,8 @@ export interface Sessao {
   iniciadaEm: string;
   /** modo de autenticação — "DEMO" até existir backend */
   modo: "DEMO" | "API";
+  /** Token JWT retornado pela API real */
+  token?: string;
 }
 
 export type TipoAcao =
@@ -171,6 +173,8 @@ export interface ViewerSource {
 }
 
 export interface UsuarioAdmin extends Usuario {
+  statusAtivo: boolean;
+  criadoEm: string;
   turmas: { id: number; rotulo: string; papel: PapelNaTurma }[];
 }
 

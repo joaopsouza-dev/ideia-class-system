@@ -20,10 +20,10 @@ class DatabaseRlsSmokeTests {
     @Value("${spring.flyway.url:${spring.datasource.url}}")
     private String dbUrl;
 
-    @Value("${spring.flyway.user:joaopedro}")
+    @Value("${spring.flyway.user}")
     private String dbUser;
 
-    @Value("${spring.flyway.password:databasejoaopedro}")
+    @Value("${spring.flyway.password}")
     private String dbPassword;
 
     private void executeSqlFile(String resourcePath) throws Exception {

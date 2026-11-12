@@ -1,3 +1,5 @@
+# Variáveis sensíveis são lidas do arquivo .env (copie de .env.example).
+# Nenhuma senha real fica versionada aqui.
 
 services:
   db:
@@ -7,10 +9,10 @@ services:
 
     environment:
       POSTGRES_DB: ideiaspace
-
       POSTGRES_USER: postgres
-
-      POSTGRES_PASSWORD: postgres_dev_password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}
+      # Usada por ./ideiaspace/db/init/01_app_backend_password.sh para definir a senha de app_backend
+      APP_BACKEND_DB_PASSWORD: ${APP_BACKEND_DB_PASSWORD:?Defina APP_BACKEND_DB_PASSWORD no arquivo .env}
 
     ports:
       - "5434:5432"
@@ -39,17 +41,26 @@ services:
 
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ideiaspace
-
-
       SPRING_DATASOURCE_USERNAME: app_backend
-      SPRING_DATASOURCE_PASSWORD: app_backend_password
+      SPRING_DATASOURCE_PASSWORD: ${APP_BACKEND_DB_PASSWORD:?Defina APP_BACKEND_DB_PASSWORD no arquivo .env}
 
       SPRING_FLYWAY_USER: postgres
-      SPRING_FLYWAY_PASSWORD: postgres_dev_password
+      SPRING_FLYWAY_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}
 
       SPRING_FLYWAY_ENABLED: "true"
       SPRING_FLYWAY_SCHEMAS: public
       SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?Defina APP_JWT_SECRET no arquivo .env}
+      APP_TOKEN_TTL_MINUTES: ${APP_TOKEN_TTL_MINUTES:-60}
+      APP_CPF_KEY: ${APP_CPF_KEY:?Defina APP_CPF_KEY no arquivo .env}
+      APP_CPF_HMAC_KEY: ${APP_CPF_HMAC_KEY:?Defina APP_CPF_HMAC_KEY no arquivo .env}
+      APP_CORS_ORIGINS: ${APP_CORS_ORIGINS:-http://localhost:5173,http://localhost:3000}
+
+      # Bootstrap do primeiro administrador: usado somente se o banco não tiver admin.
+      APP_BOOTSTRAP_ADMIN_NAME: ${APP_BOOTSTRAP_ADMIN_NAME:-}
+      APP_BOOTSTRAP_ADMIN_EMAIL: ${APP_BOOTSTRAP_ADMIN_EMAIL:-}
+      APP_BOOTSTRAP_ADMIN_PASSWORD: ${APP_BOOTSTRAP_ADMIN_PASSWORD:-}
 
     ports:
       - "8081:8080"

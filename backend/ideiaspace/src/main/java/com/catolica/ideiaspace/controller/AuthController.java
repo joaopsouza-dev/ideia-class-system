@@ -8,6 +8,7 @@ import com.catolica.ideiaspace.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,7 +31,12 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    /*
+     * Fase 0: somente um ADMIN autenticado pode provisionar contas.
+     * A regra é aplicada também na URL (SecurityConfig); esta anotação é uma segunda barreira.
+     */
     @PostMapping("/provision")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProvisionResponseDTO> provision(@RequestBody ProvisionRequestDTO requestDTO) {
         ProvisionResponseDTO response = authService.provisionar(requestDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

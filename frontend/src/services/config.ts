@@ -5,9 +5,11 @@
 const env = import.meta.env;
 
 export const config = {
-  /** URL base da API do backend (ainda não existe — contratos em docs/API_CONTRACT.md) */
-  apiBaseUrl: (env.VITE_API_BASE_URL as string | undefined) ?? "",
-  /** true enquanto o backend não estiver disponível. Define `VITE_USE_MOCKS=false` para desligar. */
+  /** URL base da API do backend */
+  apiBaseUrl: (env.VITE_API_BASE_URL as string | undefined) || "http://localhost:8081",
+  /** true para forçar o uso de autenticação simulada (mock). Por padrão é falso (autenticação real). */
+  useMockAuth: (env.VITE_USE_MOCK_AUTH as string | undefined) === "true",
+  /** true enquanto o backend não tiver todos os módulos implementados */
   useMocks: (env.VITE_USE_MOCKS as string | undefined) !== "false",
   /**
    * Limites de upload validados no navegador (conveniência de UX).
