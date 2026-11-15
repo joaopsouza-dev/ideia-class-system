@@ -31,10 +31,6 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    /*
-     * Fase 0: somente um ADMIN autenticado pode provisionar contas.
-     * A regra é aplicada também na URL (SecurityConfig); esta anotação é uma segunda barreira.
-     */
     @PostMapping("/provision")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ProvisionResponseDTO> provision(@RequestBody ProvisionRequestDTO requestDTO) {
