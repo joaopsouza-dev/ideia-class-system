@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { Conteudo, StatusPublicacao, TipoMaterial } from "@/types";
+import type { Conteudo, TipoMaterial } from "@/types";
 import { normalize } from "@/utils/format";
 import { config } from "@/services/config";
 import { useDebounced } from "./useDebounced";
@@ -11,11 +11,10 @@ export interface LibraryFilters {
   tipo: TipoMaterial | "";
   disciplinaId: number | "";
   turmaId: number | "";
-  status: StatusPublicacao | "";
   sort: SortKey;
 }
 
-const INITIAL: LibraryFilters = { busca: "", tipo: "", disciplinaId: "", turmaId: "", status: "", sort: "recentes" };
+const INITIAL: LibraryFilters = { busca: "", tipo: "", disciplinaId: "", turmaId: "", sort: "recentes" };
 
 /** Filtros, ordenação e paginação da biblioteca (client-side sobre o que a API devolveu). */
 export function useLibrary(items: Conteudo[] | null, initial: Partial<LibraryFilters> = {}) {
@@ -38,7 +37,6 @@ export function useLibrary(items: Conteudo[] | null, initial: Partial<LibraryFil
       (c) =>
         (!q || normalize(`${c.titulo} ${c.descricao} ${c.turma.rotulo} ${c.professor.nome}`).includes(q)) &&
         (!filters.tipo || c.tipo === filters.tipo) &&
-        (!filters.status || c.status === filters.status) &&
         (!filters.disciplinaId || c.turma.disciplinaId === filters.disciplinaId) &&
         (!filters.turmaId || c.turma.id === filters.turmaId),
     );
@@ -55,7 +53,7 @@ export function useLibrary(items: Conteudo[] | null, initial: Partial<LibraryFil
   const safePage = Math.min(page, pageCount);
   const paged = filtered.slice((safePage - 1) * config.pageSize, safePage * config.pageSize);
   const active =
-    !!filters.busca || !!filters.tipo || !!filters.status || !!filters.disciplinaId || !!filters.turmaId;
+    !!filters.busca || !!filters.tipo || !!filters.disciplinaId || !!filters.turmaId;
 
   return { filters, update, reset, active, filtered, paged, page: safePage, pageCount, setPage };
 }

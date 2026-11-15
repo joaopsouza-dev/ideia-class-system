@@ -1,10 +1,9 @@
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Library, Plus, SearchX } from "lucide-react";
+import { Library, SearchX } from "lucide-react";
 import { LibraryFilters } from "@/components/materials/LibraryFilters";
-import { ManageList } from "@/components/materials/ManageList";
 import { MaterialCard } from "@/components/materials/MaterialCard";
-import { Button, LinkButton } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/Card";
 import { Pagination } from "@/components/ui/Pagination";
 import { CardGridSkeleton, EmptyState, ErrorState } from "@/components/ui/States";
@@ -18,7 +17,6 @@ import { services } from "@/services";
 export default function LibraryPage() {
   useDocumentTitle("Biblioteca");
   const sessao = useSessao();
-  const manage = sessao.usuario.perfil !== "ALUNO";
   const [params] = useSearchParams();
   const turmaParam = Number(params.get("turma")) || "";
   const { data, loading, error, reload } = useAsync(() => services.materials.list(sessao), [sessao]);
@@ -35,20 +33,9 @@ export default function LibraryPage() {
   return (
     <>
       <PageHeader
-        eyebrow={manage ? "Gestão de conteúdos" : "Acervo"}
+        eyebrow="Acervo"
         title="Biblioteca"
-        description={
-          manage
-            ? "Gerencie apostilas e videoaulas das suas turmas: publique, edite ou exclua."
-            : "Apostilas e videoaulas disponíveis para as suas turmas. Os conteúdos abrem no visualizador protegido."
-        }
-        actions={
-          manage && (
-            <LinkButton to="/materiais/novo">
-              <Plus className="size-4" aria-hidden /> Novo material
-            </LinkButton>
-          )
-        }
+        description="Apostilas e videoaulas disponíveis para as suas turmas. Os conteúdos abrem no visualizador protegido."
       />
       {loading && !data ? (
         <CardGridSkeleton />
@@ -58,12 +45,7 @@ export default function LibraryPage() {
         <EmptyState
           icon={Library}
           title="Nenhum material por aqui ainda"
-          description={
-            manage
-              ? "Envie a primeira apostila ou videoaula para uma das suas turmas."
-              : "Assim que seus professores publicarem conteúdos, eles aparecerão nesta página."
-          }
-          action={manage && <LinkButton to="/materiais/novo">Cadastrar material</LinkButton>}
+          description="Assim que houver conteúdos nas suas turmas, eles aparecerão nesta página."
         />
       ) : (
         <>
@@ -73,7 +55,6 @@ export default function LibraryPage() {
             reset={lib.reset}
             active={lib.active}
             items={data}
-            showStatus={manage}
             total={lib.filtered.length}
           />
           {lib.filtered.length === 0 ? (
@@ -87,8 +68,6 @@ export default function LibraryPage() {
                 </Button>
               }
             />
-          ) : manage ? (
-            <ManageList items={lib.paged} onChanged={reload} />
           ) : (
             <div className="space-y-8">
               {grupos.map(([nome, itens]) => (

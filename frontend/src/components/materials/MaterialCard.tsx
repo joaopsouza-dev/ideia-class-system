@@ -6,7 +6,7 @@ import type { Conteudo } from "@/types";
 import { cn } from "@/utils/cn";
 import { daysSince, formatBytes, formatDate, formatDuration } from "@/utils/format";
 
-export const isNovo = (c: Conteudo) => c.status === "PUBLICADO" && daysSince(c.criadoEm) <= 7;
+export const isNovo = (c: Conteudo) => daysSince(c.criadoEm) <= 7;
 
 const SPINES = ["#E80074", "#00CFE5", "#7B2CBF"] as const;
 const codigoDisciplina = (nome: string) =>
@@ -78,7 +78,6 @@ export function MaterialCard({ c, progress }: { c: Conteudo; progress?: Progress
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="text-[17px] font-semibold leading-snug group-hover:text-acao-700">{c.titulo}</h3>
           {isNovo(c) && <Badge tone="magenta">Novo</Badge>}
-          {c.status === "RASCUNHO" && <Badge tone="warn">Rascunho</Badge>}
         </div>
         <p className="mt-1 line-clamp-1 text-sm text-ink-soft">{c.descricao}</p>
         <p className="mt-1 text-[12.5px] text-ink-mute">
@@ -105,7 +104,7 @@ export function MaterialCard({ c, progress }: { c: Conteudo; progress?: Progress
           </dd>
         </div>
         <div>
-          <dt className="lbl text-[10px] text-ink-mute">Publicado</dt>
+          <dt className="lbl text-[10px] text-ink-mute">Criado em</dt>
           <dd className="mt-0.5 whitespace-nowrap text-[13.5px] font-semibold tabular-nums">{formatDate(c.criadoEm)}</dd>
         </div>
       </dl>

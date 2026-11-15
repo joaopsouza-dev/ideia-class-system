@@ -2,7 +2,10 @@
  * Configuração de integração. Valores vêm de variáveis de ambiente do Vite (.env).
  * Ver .env.example.
  */
-const env = import.meta.env;
+const env =
+  typeof import.meta !== "undefined" && import.meta.env
+    ? import.meta.env
+    : ((typeof process !== "undefined" ? process.env : {}) as unknown as Record<string, string>);
 
 export const config = {
   /** URL base da API do backend */

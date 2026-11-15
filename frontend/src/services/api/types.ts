@@ -130,6 +130,8 @@ export interface TurmaUsuarioResponseDTO {
   criadoEm: string;
 }
 
+export type BackendTipoMaterial = "PDF_LIVRO" | "PDF_APOSTILA" | "VIDEO_AULA";
+
 // ---------------------------------------------------------------------------
 // Conteúdo DTOs (/api/v1/conteudos)
 // ---------------------------------------------------------------------------
@@ -139,7 +141,7 @@ export interface ConteudoRequestDTO {
   professorId?: number | null;
   titulo: string;
   descricao?: string | null;
-  tipoMaterial: TipoMaterial;
+  tipoMaterial: BackendTipoMaterial | TipoMaterial;
   storagePath: string;
   mimeType: string;
   tamanhoBytes: number;
@@ -149,7 +151,7 @@ export interface ConteudoRequestDTO {
 export interface ConteudoUpdateDTO {
   titulo: string;
   descricao?: string | null;
-  tipoMaterial: TipoMaterial;
+  tipoMaterial: BackendTipoMaterial | TipoMaterial;
   storagePath: string;
   mimeType: string;
   tamanhoBytes: number;
@@ -159,11 +161,11 @@ export interface ConteudoUpdateDTO {
 export interface ConteudoResponseDTO {
   id: number;
   turmaId: number;
-  professorId: number;
+  professorId: number | null;
   professorNome: string | null;
   titulo: string;
   descricao: string | null;
-  tipoMaterial: TipoMaterial;
+  tipoMaterial: BackendTipoMaterial | TipoMaterial;
   mimeType: string;
   tamanhoBytes: number;
   sha256: string | null;

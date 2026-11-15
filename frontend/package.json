@@ -10,7 +10,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b"
+    "typecheck": "tsc -b",
+    "test:integration": "vite build --ssr src/tests/test-materials-e2e.ts --outDir dist/test && node dist/test/test-materials-e2e.js && rm -rf dist/test"
   },
   "dependencies": {
     "@fontsource-variable/montserrat": "^5.3.0",

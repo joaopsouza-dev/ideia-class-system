@@ -4,7 +4,6 @@ import {
   GraduationCap,
   LayoutDashboard,
   Library,
-  Plus,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -22,7 +21,6 @@ export const NAV: Record<Perfil, NavItem[]> = {
     { to: "/", label: "Painel", icon: LayoutDashboard, end: true },
     { to: "/turmas", label: "Minhas turmas", icon: GraduationCap },
     { to: "/biblioteca", label: "Biblioteca", icon: Library },
-    { to: "/materiais/novo", label: "Novo material", icon: Plus },
     { to: "/auditoria", label: "Acessos", icon: FileClock },
   ],
   ALUNO: [

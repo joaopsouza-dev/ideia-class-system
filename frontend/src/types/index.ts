@@ -1,22 +1,33 @@
-/**
- * Tipos de domínio do frontend.
- *
- * Origem: "Modelo Lógico – Projeto Ideia Space" e "Resumo da Sprint 2 (v2.2)".
- * Os nomes seguem o modelo lógico em camelCase. Campos que NÃO devem chegar ao
- * navegador (hash_senha, cpf, caminho_storage) foram propositalmente omitidos.
- */
+// Types definitions for the frontend.
 
 export type Perfil = "ADMIN" | "PROFESSOR" | "ALUNO";
 export type PapelNaTurma = "DOCENTE" | "ALUNO";
 export type TipoMaterial = "PDF" | "VIDEO";
-export type StatusPublicacao = "PUBLICADO" | "RASCUNHO";
+export type StatusPublicacao = "PUBLICADO" | "RASCUNHO"; // retained for type safety, optional in data.
+
+/** Material filters used in UI */
+export interface MaterialFiltros {
+  busca?: string;
+  tipo?: TipoMaterial | "";
+  turmaId?: number | null;
+  disciplinaId?: number | null;
+  status?: StatusPublicacao | ""; // usado apenas pelo mock; a UI e o backend não expõem status.
+}
+
+export interface MaterialInput {
+  titulo: string;
+  descricao: string;
+  tipo: TipoMaterial;
+  turmaId: number;
+  status: StatusPublicacao; // exigido pelo mock/editor; o adapter HTTP ainda não usa (backend sem status).
+  arquivo?: File | null;
+}
 
 export interface Usuario {
   id: number;
   nomeCompleto: string;
   email: string;
   perfil: Perfil;
-  /** Presente em dados de mock ou quando fornecido explicitamente no futuro */
   uuidPublico?: string;
   statusAtivo?: boolean;
   criadoEm?: string;
@@ -43,7 +54,7 @@ export interface TurmaUsuario {
   papelNaTurma: PapelNaTurma;
 }
 
-/** Conteúdo como persistido (mock). Nunca exponha `caminhoStorage` ao frontend real. */
+/** Conteúdo persistido (mock). */
 export interface ConteudoRegistro {
   uuidPublico: string;
   turmaId: number;
@@ -53,13 +64,10 @@ export interface ConteudoRegistro {
   tipoMaterial: TipoMaterial;
   tamanhoBytes: number;
   criadoEm: string;
-  /** soft delete (removido_em) */
   removidoEm: string | null;
-  /** PENDENTE no banco: não existe coluna de publicação — ver docs/INCONSISTENCIAS */
-  status: StatusPublicacao;
+  status: StatusPublicacao; // só existe no mock; o backend não fornece.
   paginas?: number;
   duracaoSegundos?: number;
-  /** Só no mock: chave do arquivo de demonstração */
   fonteDemo?: DemoSourceKey;
 }
 
@@ -72,11 +80,10 @@ export interface TurmaResumo {
   disciplinaId: number;
   disciplinaCodigo: string;
   disciplinaNome: string;
-  /** rótulo pronto: "Mecânica Orbital · Turma A" */
   rotulo: string;
 }
 
-/** Conteúdo como a UI consome (visão montada pelo backend/adapter). */
+/** UI-facing content */
 export interface Conteudo {
   id: string;
   titulo: string;
@@ -84,7 +91,7 @@ export interface Conteudo {
   tipo: TipoMaterial;
   tamanhoBytes: number;
   criadoEm: string;
-  status: StatusPublicacao;
+  status?: StatusPublicacao; // optional, not provided by backend.
   paginas?: number;
   duracaoSegundos?: number;
   turma: TurmaResumo;
@@ -99,12 +106,9 @@ export interface TurmaDetalhe extends TurmaResumo {
 
 export interface Sessao {
   usuario: Usuario;
-  /** identificador de sessão exibido na marca d'água */
   sessionId: string;
   iniciadaEm: string;
-  /** modo de autenticação — "DEMO" até existir backend */
   modo: "DEMO" | "API";
-  /** Token JWT retornado pela API real */
   token?: string;
 }
 
@@ -144,34 +148,6 @@ export interface RegistroAcessoInput {
   detalhe?: string;
 }
 
-export interface MaterialFiltros {
-  busca?: string;
-  tipo?: TipoMaterial | "";
-  turmaId?: number | null;
-  disciplinaId?: number | null;
-  status?: StatusPublicacao | "";
-}
-
-export interface MaterialInput {
-  titulo: string;
-  descricao: string;
-  tipo: TipoMaterial;
-  turmaId: number;
-  status: StatusPublicacao;
-  arquivo?: File | null;
-}
-
-/** Fonte de visualização entregue pelo backend (URL temporária / assinada). */
-export interface ViewerSource {
-  url: string;
-  origem: "DEMO" | "UPLOAD_LOCAL" | "API";
-  /** ISO — quando a URL assinada expira (backend) */
-  expiraEm?: string;
-  paginas?: number;
-  duracaoSegundos?: number;
-  posterUrl?: string;
-}
-
 export interface UsuarioAdmin extends Usuario {
   statusAtivo: boolean;
   criadoEm: string;
@@ -183,4 +159,13 @@ export interface RegistroUsuarioInput {
   email: string;
   cpf: string;
   senha: string;
+}
+
+export interface ViewerSource {
+  url: string;
+  origem: "DEMO" | "UPLOAD_LOCAL" | "API";
+  expiraEm?: string;
+  paginas?: number;
+  duracaoSegundos?: number;
+  posterUrl?: string;
 }

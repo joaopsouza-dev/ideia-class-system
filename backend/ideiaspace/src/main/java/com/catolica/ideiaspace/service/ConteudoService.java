@@ -53,6 +53,10 @@ public class ConteudoService {
                         "Turma ativa não encontrada com ID: " + dto.turmaId()));
 
         UserPrincipal usuario = usuarioAtual();
+        if (!isAdmin(usuario) && !"DOCENTE".equals(usuario.perfil())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Apenas professores e administradores podem cadastrar conteúdos.");
+        }
         Long professorId = null;
         if (isAdmin(usuario)) {
             if (dto.professorId() == null) {

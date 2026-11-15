@@ -49,7 +49,7 @@ export default function MaterialEditorPage() {
     setDescricao(c.descricao);
     setTipo(c.tipo);
     setTurmaId(c.turma.id);
-    setStatus(c.status);
+    setStatus(c.status ?? "PUBLICADO");
   }, [existing.data]);
 
   // pré-seleciona a turma quando o professor só tem uma

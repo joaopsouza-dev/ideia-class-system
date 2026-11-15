@@ -97,7 +97,7 @@ export default function MaterialViewerPage() {
             <div className="flex items-center gap-2">
               <CalendarDays className="size-4 text-ink-mute" strokeWidth={1.75} aria-hidden />
               <div>
-                <dt className="text-xs text-ink-soft">Publicação</dt>
+                <dt className="text-xs text-ink-soft">Criado em</dt>
                 <dd className="font-medium">{formatDate(c.criadoEm)}</dd>
               </div>
             </div>
@@ -111,7 +111,6 @@ export default function MaterialViewerPage() {
           </dl>
           <div className="mt-4 flex flex-wrap gap-2">
             <Badge tone="ciano">{c.turma.disciplinaNome}</Badge>
-            {c.status === "RASCUNHO" && <Badge tone="warn">Rascunho — não visível aos alunos</Badge>}
             {source.data?.origem === "DEMO" && (
               <Badge tone="nebulosa" icon={<FlaskConical className="size-3" aria-hidden />}>
                 Arquivo de demonstração

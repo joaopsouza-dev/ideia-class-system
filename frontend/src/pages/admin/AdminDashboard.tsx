@@ -31,7 +31,7 @@ export default function AdminDashboard() {
           items={[
             { label: "Usuários", value: u.length, hint: `${u.filter((x) => x.statusAtivo).length} ativos · ${u.filter((x) => !x.statusAtivo).length} inativos` },
             { label: "Turmas", value: turmas.data!.length, hint: "semestre 2026/2", tone: "ciano" },
-            { label: "Materiais", value: mats.data!.length, hint: `${mats.data!.filter((c) => c.status === "PUBLICADO").length} publicados` },
+            { label: "Materiais", value: mats.data!.length, hint: "em todas as turmas" },
             { label: "Alertas", value: alertas, hint: "tentativas bloqueadas (7 dias)", tone: "alerta" },
           ]}
         />

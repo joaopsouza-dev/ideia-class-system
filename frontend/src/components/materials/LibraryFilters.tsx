@@ -10,11 +10,10 @@ interface Props {
   reset: () => void;
   active: boolean;
   items: Conteudo[];
-  showStatus?: boolean;
   total: number;
 }
 
-export function LibraryFilters({ filters, update, reset, active, items, showStatus, total }: Props) {
+export function LibraryFilters({ filters, update, reset, active, items, total }: Props) {
   const disciplinas = Array.from(new Map(items.map((c) => [c.turma.disciplinaId, c.turma.disciplinaNome])));
   const turmas = Array.from(new Map(items.map((c) => [c.turma.id, c.turma.rotulo])));
   return (
@@ -60,13 +59,6 @@ export function LibraryFilters({ filters, update, reset, active, items, showStat
             </option>
           ))}
         </FilterSelect>
-        {showStatus && (
-          <FilterSelect label="Situação" value={filters.status} onChange={(e) => update("status", e.target.value as Filters["status"])}>
-            <option value="">Todas as situações</option>
-            <option value="PUBLICADO">Publicados</option>
-            <option value="RASCUNHO">Rascunhos</option>
-          </FilterSelect>
-        )}
         <FilterSelect label="Ordenar por" value={filters.sort} onChange={(e) => update("sort", e.target.value as Filters["sort"])}>
           <option value="recentes">Mais recentes</option>
           <option value="antigos">Mais antigos</option>

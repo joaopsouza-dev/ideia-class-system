@@ -367,13 +367,17 @@ class TurmaAndParticipantesIntegrationTest {
             }
             """, docenteId, LocalDate.now());
 
-        mockMvc.perform(post("/api/v1/turmas/" + turmaId + "/participantes")
+        MvcResult resultDocente = mockMvc.perform(post("/api/v1/turmas/" + turmaId + "/participantes")
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(docenteVinculo))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.usuarioId", is(docenteId.intValue())))
-                .andExpect(jsonPath("$.papel", is("DOCENTE")));
+                .andExpect(jsonPath("$.papel", is("DOCENTE")))
+                .andReturn();
+
+        Number vdId = JsonPath.read(resultDocente.getResponse().getContentAsString(), "$.id");
+        vinculoDocenteId = vdId.longValue();
     }
 
     @Test
@@ -461,6 +465,12 @@ class TurmaAndParticipantesIntegrationTest {
         mockMvc.perform(delete("/api/v1/turmas/" + turmaId + "/participantes/" + vinculoAlunoId)
                 .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isNoContent());
+
+        if (vinculoDocenteId != null) {
+            mockMvc.perform(delete("/api/v1/turmas/" + turmaId + "/participantes/" + vinculoDocenteId)
+                    .header("Authorization", "Bearer " + adminToken))
+                    .andExpect(status().isNoContent());
+        }
     }
 
     @Test

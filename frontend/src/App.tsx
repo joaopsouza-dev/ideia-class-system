@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "@/layouts/AppShell";
 import { GuestOnly, RequireAuth, RequireRole } from "@/layouts/RouteGuards";
 import { Spinner } from "@/components/ui/States";
@@ -11,7 +11,6 @@ import { NotFoundPage } from "@/pages/NotFoundPage";
 
 // Telas pesadas (pdf.js) e de gestão carregam sob demanda.
 const MaterialViewerPage = lazy(() => import("@/pages/materials/MaterialViewerPage"));
-const MaterialEditorPage = lazy(() => import("@/pages/materials/MaterialEditorPage"));
 const LibraryPage = lazy(() => import("@/pages/materials/LibraryPage"));
 const ClassesPage = lazy(() => import("@/pages/classes/ClassesPage"));
 const ClassDetailPage = lazy(() => import("@/pages/classes/ClassDetailPage"));
@@ -36,9 +35,11 @@ export default function App() {
             <Route path="biblioteca" element={<LibraryPage />} />
             <Route path="material/:id" element={<MaterialViewerPage />} />
 
+            {/* Cadastro e edição só serão liberados na etapa de upload/CRUD; até lá, voltam à biblioteca. */}
+            <Route path="materiais/novo" element={<Navigate to="/biblioteca" replace />} />
+            <Route path="materiais/:id/editar" element={<Navigate to="/biblioteca" replace />} />
+
             <Route element={<RequireRole perfis={["PROFESSOR", "ADMIN"]} />}>
-              <Route path="materiais/novo" element={<MaterialEditorPage />} />
-              <Route path="materiais/:id/editar" element={<MaterialEditorPage />} />
               <Route path="auditoria" element={<AuditPage />} />
             </Route>
             <Route element={<RequireRole perfis={["ADMIN"]} />}>
