@@ -1,12 +1,18 @@
 import type { Conteudo } from "@/types";
 import { ManageRow } from "./ManageRow";
 
-/** Lista somente leitura (sem ações de gestão nesta etapa). */
-export function ManageList({ items }: { items: Conteudo[] }) {
+interface Props {
+  items: Conteudo[];
+  busyId?: string | null;
+  onToggleStatus: (c: Conteudo) => void;
+  onDelete: (c: Conteudo) => void;
+}
+
+export function ManageList({ items, busyId, onToggleStatus, onDelete }: Props) {
   return (
     <ul className="space-y-3">
       {items.map((c) => (
-        <ManageRow key={c.id} c={c} />
+        <ManageRow key={c.id} c={c} busy={busyId === c.id} onToggleStatus={onToggleStatus} onDelete={onDelete} />
       ))}
     </ul>
   );

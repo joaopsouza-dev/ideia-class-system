@@ -11,17 +11,7 @@ export const TOKEN_STORAGE_KEY = "ideiaspace:auth_token";
 
 export type AuthFailureCallback = (status: 401 | 403, error: ApiError) => void;
 
-/**
- * Cliente HTTP centralizado para comunicação com a API backend do Ideia Space.
- *
- * Suporta:
- * - URL base configurável por variável de ambiente (VITE_API_BASE_URL)
- * - Injeção automática de JWT no header Authorization
- * - Mapeamento e normalização centralizada de erros da API
- * - Manipulação automática de JSON e multipart/form-data
- * - Notificações de 401 (desautenticação/expiração) e 403 (acesso negado)
- * - Cancelamento via AbortSignal e progresso de upload
- */
+/** Cliente HTTP centralizado para a API do Ideia Space. */
 export class HttpClient {
   private baseUrl: string;
   private token: string | null = null;
@@ -33,9 +23,7 @@ export class HttpClient {
     this.initTokenFromStorage();
   }
 
-  /**
-   * Inicializa o token do armazenamento de sessão do navegador.
-   */
+  /** Recupera o token salvo na sessão do navegador. */
   private initTokenFromStorage(): void {
     if (typeof window === "undefined" || !window.sessionStorage) return;
     try {
@@ -44,13 +32,11 @@ export class HttpClient {
         this.token = stored;
       }
     } catch {
-      // Falha ao acessar sessionStorage (ex: modo anônimo restritivo)
+      // Armazenamento indisponível (ex.: navegação anônima restrita)
     }
   }
 
-  /**
-   * Define o token JWT ativo e persiste em sessionStorage.
-   */
+  /** Define o token JWT ativo e o persiste na sessão. */
   public setToken(token: string | null): void {
     this.token = token;
     if (typeof window === "undefined" || !window.sessionStorage) return;
@@ -306,8 +292,9 @@ export class HttpClient {
     options?: UploadOptions,
   ): Promise<T> {
     // Se não há callback de progresso e XMLHttpRequest não for obrigatório, usa fetch tradicional
+    const method = options?.method ?? "POST";
     if (!options?.onProgress) {
-      return this.request<T>("POST", path, formData, options);
+      return this.request<T>(method, path, formData, options);
     }
 
     const url = this.buildUrl(path, options?.params);
@@ -315,7 +302,7 @@ export class HttpClient {
 
     return new Promise<T>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.open("POST", url, true);
+      xhr.open(method, url, true);
       xhr.responseType = "json";
 
       if (auth && this.token) {
@@ -342,6 +329,10 @@ export class HttpClient {
       }
 
       if (options?.signal) {
+        if (options.signal.aborted) {
+          reject(new ApiError("ABORTED", "Upload cancelado.", 0));
+          return;
+        }
         options.signal.addEventListener("abort", () => {
           xhr.abort();
           reject(new ApiError("ABORTED", "Upload cancelado.", 0));

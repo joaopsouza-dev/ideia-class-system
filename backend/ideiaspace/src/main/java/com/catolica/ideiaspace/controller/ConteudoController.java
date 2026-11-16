@@ -1,14 +1,21 @@
 package com.catolica.ideiaspace.controller;
 
-import com.catolica.ideiaspace.dto.conteudo.ConteudoRequestDTO;
+import com.catolica.ideiaspace.domain.enums.StatusPublicacao;
+import com.catolica.ideiaspace.domain.enums.TipoMaterial;
 import com.catolica.ideiaspace.dto.conteudo.ConteudoResponseDTO;
-import com.catolica.ideiaspace.dto.conteudo.ConteudoUpdateDTO;
+import com.catolica.ideiaspace.dto.conteudo.ConteudoStatusDTO;
 import com.catolica.ideiaspace.service.ConteudoService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -16,7 +23,6 @@ import java.util.List;
 @RequestMapping("/api/v1/conteudos")
 public class ConteudoController {
 
-    @Autowired
     private final ConteudoService conteudoService;
 
     public ConteudoController(ConteudoService conteudoService) {
@@ -34,22 +40,63 @@ public class ConteudoController {
         return ResponseEntity.ok(conteudoService.buscarPorId(id));
     }
 
-    @PostMapping
-    public ResponseEntity<ConteudoResponseDTO> cadastrar(@Valid @RequestBody ConteudoRequestDTO requestDTO) {
-        ConteudoResponseDTO criado = conteudoService.cadastrar(requestDTO);
+    /**
+     * Cadastro com upload real (multipart/form-data). O cliente NÃO informa caminho, tipo MIME,
+     * tamanho nem hash: tudo isso é determinado pelo servidor a partir do arquivo recebido.
+     */
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ConteudoResponseDTO> cadastrar(
+            @RequestParam("turmaId") Long turmaId,
+            @RequestParam(name = "professorId", required = false) Long professorId,
+            @RequestParam("titulo") String titulo,
+            @RequestParam(name = "descricao", required = false) String descricao,
+            @RequestParam("tipoMaterial") TipoMaterial tipoMaterial,
+            @RequestParam(name = "statusPublicacao", required = false) StatusPublicacao statusPublicacao,
+            @RequestParam("arquivo") MultipartFile arquivo) {
+        ConteudoResponseDTO criado = conteudoService.cadastrar(
+                turmaId, professorId, titulo, descricao, tipoMaterial, statusPublicacao, arquivo);
         return ResponseEntity.status(HttpStatus.CREATED).body(criado);
     }
 
-    @PutMapping("/{id}")
+    /** Edição de título/descrição e, opcionalmente, substituição do arquivo ("arquivo"). */
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ConteudoResponseDTO> atualizar(
             @PathVariable Long id,
-            @Valid @RequestBody ConteudoUpdateDTO updateDTO) {
-        return ResponseEntity.ok(conteudoService.atualizar(id, updateDTO));
+            @RequestParam("titulo") String titulo,
+            @RequestParam(name = "descricao", required = false) String descricao,
+            @RequestParam(name = "tipoMaterial", required = false) TipoMaterial tipoMaterial,
+            @RequestParam(name = "arquivo", required = false) MultipartFile arquivo) {
+        return ResponseEntity.ok(conteudoService.atualizar(id, titulo, descricao, tipoMaterial, arquivo));
+    }
+
+    /** Publica (PUBLICADO) ou despublica (RASCUNHO) o material. */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ConteudoResponseDTO> alterarStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody ConteudoStatusDTO dto) {
+        return ResponseEntity.ok(conteudoService.alterarStatus(id, dto.statusPublicacao()));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> excluir(@PathVariable Long id) {
         conteudoService.excluir(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Leitura autenticada do arquivo (autor ou administrador), com suporte a Range. Não há URL
+     * pública: o acesso sempre passa por JWT, RLS e pela regra de gestão do material.
+     */
+    @GetMapping("/{id}/arquivo")
+    public ResponseEntity<Resource> arquivo(@PathVariable Long id) {
+        ConteudoService.ArquivoConteudo arquivo = conteudoService.obterArquivo(id);
+        Resource recurso = new FileSystemResource(arquivo.caminho());
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(arquivo.mimeType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.inline().filename(arquivo.nomeSugerido()).build().toString())
+                .header("X-Content-Type-Options", "nosniff")
+                .cacheControl(CacheControl.noStore().cachePrivate())
+                .body(recurso);
     }
 }

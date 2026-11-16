@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { FlaskConical, Lock } from "lucide-react";
+import { FlaskConical } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { isDemoMode, isMockAuth } from "@/services";
 
@@ -48,26 +48,21 @@ export function AuthLayout({ title, subtitle, children }: { title: string; subti
             <h1 className="mt-2 text-[1.75rem] font-bold">{title}</h1>
             {subtitle && <p className="mt-1.5 text-sm text-ink-soft">{subtitle}</p>}
             <div className="mt-6">{children}</div>
-            <div className="mt-6 flex items-start gap-2.5 border-t border-line pt-4 text-[12.5px] leading-relaxed text-ink-soft">
-              <Lock className="mt-0.5 size-[18px] shrink-0 text-ciano-700" strokeWidth={1.75} aria-hidden />
-              <p>
-                Conteúdo protegido: marca d’água com seu nome e registro de acessos.
-                {isDemoMode && (
-                  <>
-                    {" "}
-                    {isMockAuth ? (
-                      <>
-                        <strong className="text-ink">Modo demonstração</strong> — autenticação simulada.
-                      </>
-                    ) : (
-                      <>
-                        <strong className="text-ink">Ambiente híbrido</strong> — autenticação real via backend (dados acadêmicos simulados).
-                      </>
-                    )}
-                  </>
-                )}
-              </p>
-            </div>
+            {isDemoMode && (
+              <div className="mt-6 border-t border-line pt-4 text-[12.5px] leading-relaxed text-ink-soft">
+                <p>
+                  {isMockAuth ? (
+                    <>
+                      <strong className="text-ink">Modo demonstração</strong> — autenticação simulada.
+                    </>
+                  ) : (
+                    <>
+                      <strong className="text-ink">Ambiente híbrido</strong> — autenticação real via backend (dados acadêmicos simulados).
+                    </>
+                  )}
+                </p>
+              </div>
+            )}
           </div>
           <p className="mt-5 flex items-center justify-center gap-2 text-center text-xs text-[#8e9eab]">
             {isDemoMode && <FlaskConical className="size-3.5 text-ciano" aria-hidden />}

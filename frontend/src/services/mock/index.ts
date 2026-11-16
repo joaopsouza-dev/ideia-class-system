@@ -172,6 +172,11 @@ export const mockServices: Services = {
     async requestPasswordReset() {
       await delay(600);
     },
+    async alterarSenha(_sessao, senhaAtual, novaSenha) {
+      await delay(400);
+      if (senhaAtual !== DEMO_PASSWORD) throw new ApiError("VALIDATION", "Senha atual incorreta.", 400);
+      if (novaSenha.length < 8) throw new ApiError("VALIDATION", "A nova senha deve ter ao menos 8 caracteres.", 400);
+    },
     async logout(sessao) {
       await delay(150);
       pushLog(sessao, "LOGOUT");
@@ -191,6 +196,19 @@ export const mockServices: Services = {
   },
 
   academic: {
+    // Matrícula não existe no modo demonstração: não simula vínculos.
+    async listParticipantes() {
+      throw new ApiError("NOT_IMPLEMENTED", "Matrícula indisponível no modo demonstração.", 501);
+    },
+    async listAlunosDisponiveis() {
+      throw new ApiError("NOT_IMPLEMENTED", "Matrícula indisponível no modo demonstração.", 501);
+    },
+    async vincularAluno() {
+      throw new ApiError("NOT_IMPLEMENTED", "Matrícula indisponível no modo demonstração.", 501);
+    },
+    async removerParticipante() {
+      throw new ApiError("NOT_IMPLEMENTED", "Matrícula indisponível no modo demonstração.", 501);
+    },
     async listTurmas(sessao) {
       await delay(250);
       const u = sessao.usuario;
@@ -222,6 +240,33 @@ export const mockServices: Services = {
           .filter((tu) => tu.usuarioId === u.id)
           .map((tu) => ({ id: tu.turmaId, rotulo: turmaResumo(tu.turmaId).rotulo, papel: tu.papelNaTurma })),
       }));
+    },
+    async atualizarUsuario(sessao, usuarioId, dados) {
+      await delay(300);
+      const u = db.usuarios.find((x) => x.id === usuarioId);
+      if (!u) throw new ApiError("NOT_FOUND", "Usuário não encontrado.", 404);
+      const ehProprio = usuarioId === sessao.usuario.id;
+      if (!ehProprio) exigirPerfil(sessao, "ADMIN");
+      if (dados.perfil !== undefined && dados.perfil !== u.perfil) {
+        exigirPerfil(sessao, "ADMIN");
+        if (ehProprio) throw new ApiError("VALIDATION", "Não é possível alterar o próprio perfil.", 422);
+      }
+      if (dados.email !== undefined) {
+        const email = dados.email.trim().toLowerCase();
+        if (db.usuarios.some((x) => x.id !== usuarioId && x.email.toLowerCase() === email))
+          throw new ApiError("CONFLICT", "E-mail já cadastrado.", 409);
+        u.email = email;
+      }
+      if (dados.nomeCompleto !== undefined) u.nomeCompleto = dados.nomeCompleto.trim();
+      if (dados.perfil !== undefined) u.perfil = dados.perfil;
+      return {
+        ...u,
+        statusAtivo: u.statusAtivo ?? true,
+        criadoEm: u.criadoEm ?? "",
+        turmas: db.turmaUsuarios
+          .filter((tu) => tu.usuarioId === u.id)
+          .map((tu) => ({ id: tu.turmaId, rotulo: turmaResumo(tu.turmaId).rotulo, papel: tu.papelNaTurma })),
+      };
     },
     async setUsuarioAtivo(sessao, usuarioId, ativo) {
       exigirPerfil(sessao, "ADMIN");

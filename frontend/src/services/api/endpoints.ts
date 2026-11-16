@@ -19,8 +19,19 @@ export const API_ENDPOINTS = {
     REMOVER_PARTICIPANTE: (turmaId: number | string, vinculoId: number | string) =>
       `/api/v1/turmas/${turmaId}/participantes/${vinculoId}`,
   },
+  USUARIOS: {
+    BASE: "/api/v1/usuarios",
+    BY_ID: (id: number | string) => `/api/v1/usuarios/${id}`,
+    STATUS: (id: number | string) => `/api/v1/usuarios/${id}/status`,
+    ME_SENHA: "/api/v1/usuarios/me/senha",
+    ALUNOS: "/api/v1/usuarios/alunos",
+  },
+  AUDITORIA: {
+    BASE: "/api/v1/auditoria",
+  },
   CONTEUDOS: {
     BASE: "/api/v1/conteudos",
     BY_ID: (id: number | string) => `/api/v1/conteudos/${id}`,
+    STATUS: (id: number | string) => `/api/v1/conteudos/${id}/status`,
   },
 } as const;

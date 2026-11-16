@@ -1,5 +1,6 @@
 package com.catolica.ideiaspace.domain;
 
+import com.catolica.ideiaspace.domain.enums.StatusPublicacao;
 import com.catolica.ideiaspace.domain.enums.TipoMaterial;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -12,8 +13,8 @@ import java.util.List;
 /*
  * Colunas imutáveis pela aplicação (updatable = false): o role app_backend possui
  * UPDATE apenas em titulo, descricao, tipo_material, storage_path, mime_type,
- * tamanho_bytes e sha256 (V1__firstversion.sql). Criação e arquivamento passam
- * pelas funções fn_criar_conteudo e fn_arquivar_conteudo.
+ * tamanho_bytes e sha256 (V1__firstversion.sql) e status_publicacao (V4). Criação e
+ * arquivamento passam pelas funções fn_criar_conteudo e fn_arquivar_conteudo.
  */
 @Data
 @NoArgsConstructor
@@ -40,8 +41,14 @@ public class Conteudo {
     private String descricao;
 
     @Enumerated(EnumType.STRING)
+    @org.hibernate.annotations.JdbcType(org.hibernate.dialect.type.PostgreSQLEnumJdbcType.class)
     @Column(name = "tipo_material")
     private TipoMaterial tipoMaterial;
+
+    @Enumerated(EnumType.STRING)
+    @org.hibernate.annotations.JdbcType(org.hibernate.dialect.type.PostgreSQLEnumJdbcType.class)
+    @Column(name = "status_publicacao")
+    private StatusPublicacao statusPublicacao;
 
     @Column(name = "storage_path")
     private String storagePath;

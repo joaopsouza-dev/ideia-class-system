@@ -15,12 +15,17 @@ import com.catolica.ideiaspace.repositories.TurmaRepository;
 import com.catolica.ideiaspace.repositories.TurmaUsuarioRepository;
 import com.catolica.ideiaspace.repositories.UsuarioRepository;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Service
@@ -30,16 +35,19 @@ public class TurmaService {
     private final DisciplinaRepository disciplinaRepository;
     private final TurmaUsuarioRepository turmaUsuarioRepository;
     private final UsuarioRepository usuarioRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     public TurmaService(
             TurmaRepository turmaRepository,
             DisciplinaRepository disciplinaRepository,
             TurmaUsuarioRepository turmaUsuarioRepository,
-            UsuarioRepository usuarioRepository) {
+            UsuarioRepository usuarioRepository,
+            JdbcTemplate jdbcTemplate) {
         this.turmaRepository = turmaRepository;
         this.disciplinaRepository = disciplinaRepository;
         this.turmaUsuarioRepository = turmaUsuarioRepository;
         this.usuarioRepository = usuarioRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Transactional
@@ -158,6 +166,10 @@ public class TurmaService {
         turmaRepository.save(turma);
     }
 
+    /**
+     * Matricula um usuário na turma. Administradores vinculam qualquer papel; docentes vinculam
+     * somente DISCENTE em turmas em que são DOCENTE. O RLS do banco é a barreira final.
+     */
     @Transactional
     public TurmaUsuarioResponseDTO vincularUsuario(Long turmaId, TurmaUsuarioRequestDTO dto) {
         if (turmaId == null) {
@@ -174,16 +186,23 @@ public class TurmaService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A turma não está ativa para novos vínculos.");
         }
 
-        Usuario usuario = usuarioRepository.findByIdAndExcluidoEmIsNull(dto.usuarioId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário ativo não encontrado com ID: " + dto.usuarioId()));
+        if (!ehAdministrador()) {
+            if (dto.papel() != PapelTurma.DISCENTE) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Docentes só podem matricular alunos (DISCENTE).");
+            }
+            Boolean docenteDaTurma = jdbcTemplate.queryForObject(
+                    "SELECT public.usuario_tem_papel_na_turma(?, 'DOCENTE')", Boolean.class, turmaId);
+            if (!Boolean.TRUE.equals(docenteDaTurma)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Você não é docente desta turma.");
+            }
+        }
 
-        if (usuario.getStatusConta() != StatusConta.ATIVA) {
+        UsuarioParaMatricula usuario = carregarUsuarioParaMatricula(dto.usuarioId());
+
+        if (!"ATIVA".equals(usuario.statusConta())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O usuário informado não possui conta ativa.");
         }
-
-        if (usuario.getPerfil() == PerfilUsuario.ALUNO && dto.papel() == PapelTurma.DOCENTE) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Usuário com perfil de ALUNO não pode ser vinculado como DOCENTE.");
-        }
+        validarPerfilParaPapel(usuario.perfil(), dto.papel());
 
         LocalDate inicio = dto.inicioEm() != null ? dto.inicioEm() : LocalDate.now();
         LocalDate fim = dto.fimEm();
@@ -196,21 +215,27 @@ public class TurmaService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "O usuário já possui vínculo ativo nesta turma.");
         }
 
-        TurmaUsuario vinculo = new TurmaUsuario();
-        vinculo.setTurma(turma);
-        vinculo.setUsuario(usuario);
-        vinculo.setPapel(dto.papel());
-        vinculo.setStatus(StatusMatricula.ATIVA);
-        vinculo.setInicioEm(inicio);
-        vinculo.setFimEm(fim);
+        // Inserção via JdbcTemplate: a política RLS de docente exige papel DISCENTE na turma dele.
+        LinhaInserida inserida = jdbcTemplate.queryForObject(
+                "INSERT INTO turma_usuario (turma_id, usuario_id, papel, status, inicio_em, fim_em) " +
+                "VALUES (?, ?, ?::papel_turma_enum, 'ATIVA'::status_matricula_enum, ?, ?) " +
+                "RETURNING id, criado_em",
+                (rs, rowNum) -> new LinhaInserida(
+                        rs.getLong("id"),
+                        rs.getObject("criado_em", OffsetDateTime.class).toLocalDateTime()),
+                turmaId, usuario.id(), dto.papel().name(), inicio, fim);
 
-        LocalDateTime agora = LocalDateTime.now();
-        vinculo.setCriadoEm(agora);
-        vinculo.setAtualizadoEm(agora);
-        vinculo.setExcluidoEm(null);
-
-        TurmaUsuario salvo = turmaUsuarioRepository.save(vinculo);
-        return TurmaUsuarioResponseDTO.fromEntity(salvo);
+        return new TurmaUsuarioResponseDTO(
+                inserida.id(),
+                turmaId,
+                usuario.id(),
+                usuario.nomeCompleto(),
+                usuario.email(),
+                dto.papel(),
+                StatusMatricula.ATIVA,
+                inicio,
+                fim,
+                inserida.criadoEm());
     }
 
     @Transactional(readOnly = true)
@@ -242,12 +267,61 @@ public class TurmaService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O vínculo informado não pertence à turma indicada.");
         }
 
+        if (!ehAdministrador() && vinculo.getPapel() != PapelTurma.DISCENTE) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Docentes só podem remover alunos (DISCENTE).");
+        }
+
         LocalDateTime agora = LocalDateTime.now();
         vinculo.setExcluidoEm(agora);
         vinculo.setStatus(StatusMatricula.CANCELADA);
         vinculo.setAtualizadoEm(agora);
 
         turmaUsuarioRepository.save(vinculo);
+    }
+
+    private UsuarioParaMatricula carregarUsuarioParaMatricula(Long usuarioId) {
+        List<UsuarioParaMatricula> encontrados = jdbcTemplate.query(
+                "SELECT out_id, out_nome_completo, out_email, out_perfil, out_status_conta " +
+                "FROM fn_obter_usuario_para_matricula(?)",
+                (rs, rowNum) -> new UsuarioParaMatricula(
+                        rs.getLong("out_id"),
+                        rs.getString("out_nome_completo"),
+                        rs.getString("out_email"),
+                        rs.getString("out_perfil"),
+                        rs.getString("out_status_conta")),
+                usuarioId);
+        if (encontrados.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado com ID: " + usuarioId);
+        }
+        return encontrados.get(0);
+    }
+
+    private static void validarPerfilParaPapel(String perfil, PapelTurma papel) {
+        if (papel == PapelTurma.DISCENTE && !"ALUNO".equals(perfil)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Apenas contas de ALUNO podem ser matriculadas como DISCENTE.");
+        }
+        if (papel == PapelTurma.DOCENTE && "ALUNO".equals(perfil)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Usuário com perfil de ALUNO não pode ser vinculado como DOCENTE.");
+        }
+    }
+
+    private boolean ehAdministrador() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) {
+            return false;
+        }
+        for (GrantedAuthority authority : auth.getAuthorities()) {
+            if ("ROLE_ADMIN".equals(authority.getAuthority())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private record UsuarioParaMatricula(Long id, String nomeCompleto, String email, String perfil, String statusConta) {
+    }
+
+    private record LinhaInserida(Long id, LocalDateTime criadoEm) {
     }
 
     private void validarCamposTurma(Long disciplinaId, String codigo, String nome, Integer ano, Integer semestre) {

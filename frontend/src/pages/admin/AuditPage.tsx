@@ -66,7 +66,7 @@ export default function AuditPage() {
       <PageHeader
         eyebrow={admin ? "Rastreabilidade" : "Seus conteúdos"}
         title={admin ? "Auditoria de acessos" : "Acessos aos meus conteúdos"}
-        description="Registro de acessos e de tentativas de uso não permitido. Em produção, os registros são imutáveis no banco (log_acesso)."
+        description="Registro de acessos e de tentativas de uso não permitido."
         actions={
           <Button variant="secondary" onClick={exportCsv} disabled={!rows.length} icon={<Download className="size-4" aria-hidden />}>
             Exportar CSV

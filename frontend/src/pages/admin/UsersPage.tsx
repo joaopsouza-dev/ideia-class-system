@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
-import { Search, UserCheck, UserX, Users } from "lucide-react";
+import { Pencil, Search, UserCheck, UserX, Users } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/Card";
 import { FilterSelect } from "@/components/ui/Field";
 import { ConfirmDialog } from "@/components/ui/Modal";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui/States";
+import { EditUserDialog } from "./EditUserDialog";
 import { useSessao } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { useAsync } from "@/hooks/useAsync";
@@ -24,6 +25,7 @@ export default function UsersPage() {
   const [perfil, setPerfil] = useState<Perfil | "">("");
   const [status, setStatus] = useState<"" | "ativo" | "inativo">("");
   const [target, setTarget] = useState<UsuarioAdmin | null>(null);
+  const [editando, setEditando] = useState<UsuarioAdmin | null>(null);
   const [saving, setSaving] = useState(false);
 
   const list = useMemo(() => {
@@ -111,6 +113,9 @@ export default function UsersPage() {
                 {PERFIL_LABEL[u.perfil]}
               </Badge>
               <Badge tone={u.statusAtivo ? "ok" : "danger"}>{u.statusAtivo ? "Ativo" : "Inativo"}</Badge>
+              <Button variant="secondary" size="sm" icon={<Pencil className="size-4" aria-hidden />} onClick={() => setEditando(u)}>
+                Editar
+              </Button>
               <Button
                 variant="secondary"
                 size="sm"
@@ -125,6 +130,16 @@ export default function UsersPage() {
           ))}
         </ul>
       )}
+
+      <EditUserDialog
+        sessao={sessao}
+        usuario={editando}
+        onClose={() => setEditando(null)}
+        onSaved={() => {
+          setEditando(null);
+          reload();
+        }}
+      />
 
       <ConfirmDialog
         open={!!target}

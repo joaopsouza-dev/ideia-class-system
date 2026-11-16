@@ -11,7 +11,15 @@ FROM eclipse-temurin:21-jre
 
 WORKDIR /app
 
-COPY --from=build /app/target/*.jar app.jar
+# Usuário sem privilégios; /app/storage é o ponto de montagem do volume de uploads.
+# O chown na imagem faz o volume nomeado nascer com dono "app" na primeira montagem.
+RUN groupadd --system app && useradd --system --gid app --home-dir /app app \
+    && mkdir -p /app/storage \
+    && chown -R app:app /app
+
+COPY --from=build --chown=app:app /app/target/*.jar app.jar
+
+USER app
 
 EXPOSE 8080
 

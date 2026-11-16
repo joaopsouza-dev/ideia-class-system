@@ -49,7 +49,7 @@ export default function MaterialEditorPage() {
     setDescricao(c.descricao);
     setTipo(c.tipo);
     setTurmaId(c.turma.id);
-    setStatus(c.status ?? "PUBLICADO");
+    setStatus(c.status ?? "RASCUNHO");
   }, [existing.data]);
 
   // pré-seleciona a turma quando o professor só tem uma
@@ -81,6 +81,9 @@ export default function MaterialEditorPage() {
     try {
       if (editing && id) {
         await services.materials.update(sessao, id, { titulo, descricao, turmaId: Number(turmaId), status, arquivo }, opts);
+        if (status !== (existing.data?.status ?? status)) {
+          await services.materials.setStatus(sessao, id, status);
+        }
         toast.success("Material atualizado", titulo);
       } else {
         await services.materials.create(
@@ -115,7 +118,7 @@ export default function MaterialEditorPage() {
       <PageHeader
         eyebrow={editing ? "Edição" : "Cadastro"}
         title={editing ? "Editar material" : "Novo material"}
-        description="O arquivo é entregue aos alunos somente pelo visualizador protegido, com marca d'água e sem opção de download."
+        description="Informe os dados do material e a turma à qual ele pertence."
       />
       <form onSubmit={onSubmit} noValidate>
         <Card className="space-y-5">
@@ -231,7 +234,7 @@ export default function MaterialEditorPage() {
                 <div className="h-full rounded-full bg-acao transition-all" style={{ width: `${progress}%` }} />
               </div>
               <p className="mt-2 text-xs text-ink-soft">
-                {arquivo ? formatBytes(arquivo.size) : ""} · envio simulado no navegador (nenhum arquivo sai deste dispositivo).
+                {arquivo ? formatBytes(arquivo.size) : ""} · o arquivo é enviado ao servidor e armazenado de forma privada.
               </p>
               <Button variant="secondary" size="sm" className="mt-3" icon={<X className="size-4" aria-hidden />} onClick={() => abort.current?.abort()}>
                 Cancelar envio

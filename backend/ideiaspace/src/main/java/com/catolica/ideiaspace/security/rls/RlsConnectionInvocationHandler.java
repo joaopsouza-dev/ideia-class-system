@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
@@ -55,7 +56,13 @@ public class RlsConnectionInvocationHandler implements InvocationHandler {
             contextSetInTransaction = false;
         }
 
-        return method.invoke(target, args);
+        try {
+            return method.invoke(target, args);
+        } catch (InvocationTargetException e) {
+            // Sem desembrulhar, o Proxy encapsula SQLException em UndeclaredThrowableException
+            // e o tradutor de exceções do Spring não reconhece o erro.
+            throw e.getCause() != null ? e.getCause() : e;
+        }
     }
 
     private void applyRlsContextIfNeeded() {

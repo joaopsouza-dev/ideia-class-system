@@ -232,55 +232,40 @@ class ConteudoIntegrationTest {
                 .andExpect(status().isCreated());
     }
 
+    private static final byte[] PDF_BYTES =
+            "%PDF-1.4\nconteudo de teste\n%%EOF\n".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+
     @Test
     @Order(4)
     @DisplayName("Aluno não pode cadastrar conteúdo (retorna 403)")
     void test04_alunoCannotCreateContent() throws Exception {
-        String matJson = String.format("""
-            {
-                "turmaId": %d,
-                "titulo": "Tentativa de Aluno",
-                "descricao": "Tentativa não autorizada.",
-                "tipoMaterial": "PDF_APOSTILA",
-                "storagePath": "materiais/teste-aluno.pdf",
-                "mimeType": "application/pdf",
-                "tamanhoBytes": 1024
-            }
-            """, turmaId);
-
-        mockMvc.perform(post("/api/v1/conteudos")
+        mockMvc.perform(multipart("/api/v1/conteudos")
+                .file(new org.springframework.mock.web.MockMultipartFile("arquivo", "a.pdf", "application/pdf", PDF_BYTES))
                 .header("Authorization", "Bearer " + alunoToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(matJson))
+                .param("turmaId", turmaId.toString())
+                .param("titulo", "Tentativa de Aluno")
+                .param("tipoMaterial", "PDF_APOSTILA"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     @Order(5)
-    @DisplayName("Admin cadastra conteúdo associando ao professor docente da turma")
+    @DisplayName("Admin cadastra conteúdo (upload real) associando ao professor docente da turma")
     void test05_adminCreatesContent() throws Exception {
-        String matJson = String.format("""
-            {
-                "turmaId": %d,
-                "professorId": %d,
-                "titulo": "Apostila Arquitetura de Software %s",
-                "descricao": "Conteúdo didático oficial para a disciplina.",
-                "tipoMaterial": "PDF_APOSTILA",
-                "storagePath": "materiais/turma-%d/apostila-%s.pdf",
-                "mimeType": "application/pdf",
-                "tamanhoBytes": 2097152,
-                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-            }
-            """, turmaId, docenteId, UNIQUE_SUFFIX, turmaId, UNIQUE_SUFFIX);
-
-        MvcResult res = mockMvc.perform(post("/api/v1/conteudos")
+        MvcResult res = mockMvc.perform(multipart("/api/v1/conteudos")
+                .file(new org.springframework.mock.web.MockMultipartFile("arquivo", "apostila.pdf", "application/pdf", PDF_BYTES))
                 .header("Authorization", "Bearer " + adminToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(matJson))
+                .param("turmaId", turmaId.toString())
+                .param("professorId", docenteId.toString())
+                .param("titulo", "Apostila Arquitetura de Software " + UNIQUE_SUFFIX)
+                .param("descricao", "Conteúdo didático oficial para a disciplina.")
+                .param("tipoMaterial", "PDF_APOSTILA")
+                .param("statusPublicacao", "PUBLICADO"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.titulo", containsString("Apostila Arquitetura de Software")))
                 .andExpect(jsonPath("$.tipoMaterial").value("PDF_APOSTILA"))
+                .andExpect(jsonPath("$.statusPublicacao").value("PUBLICADO"))
                 .andExpect(jsonPath("$.turmaId").value(turmaId))
                 .andReturn();
 

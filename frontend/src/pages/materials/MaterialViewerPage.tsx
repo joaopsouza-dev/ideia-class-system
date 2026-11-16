@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, CalendarDays, FlaskConical, Info, Lock, ShieldAlert, UserRound } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, CalendarDays, FlaskConical, Info, UserRound } from "lucide-react";
 import { MaterialCover, detalheMidia, tipoLabel } from "@/components/materials/MaterialCard";
 import { PdfViewer } from "@/components/viewer/PdfViewer";
 import { VideoPlayer } from "@/components/viewer/VideoPlayer";
@@ -51,13 +51,6 @@ export default function MaterialViewerPage() {
         </div>
       </header>
 
-      <div className="mb-4 flex items-start gap-3 rounded border border-line bg-white px-4 py-3 text-sm text-ink-soft">
-        <Lock className="mt-0.5 size-4 shrink-0 text-acao-700" aria-hidden />
-        <p>
-          <strong className="text-ink">Conteúdo protegido.</strong> Sem botão de download · marca d'água com sua
-          identificação · ações registradas.
-        </p>
-      </div>
 
       {source.error || !source.data ? (
         <ErrorState message={source.error ?? "Fonte indisponível."} onRetry={source.reload} />
@@ -124,21 +117,6 @@ export default function MaterialViewerPage() {
           </div>
         </Card>
 
-        <Card className="bg-estelar">
-          <h2 className="flex items-center gap-2 text-base">
-            <ShieldAlert className="size-4 text-acao-700" aria-hidden /> Sobre a proteção
-          </h2>
-          <p className="mt-2 text-sm text-ink-soft">
-            A marca d'água com seu nome e sessão, o bloqueio de atalhos e o registro de tentativas servem para{" "}
-            <strong className="text-ink">dificultar</strong> o uso indevido e permitir rastrear responsáveis.
-          </p>
-          <p className="mt-2 text-sm text-ink-soft">
-            Eles não impedem, por exemplo, uma foto da tela com outro dispositivo.
-          </p>
-          <Link to="/biblioteca" className="mt-3 inline-block text-sm font-semibold text-acao-700 hover:underline">
-            Ver mais materiais
-          </Link>
-        </Card>
       </div>
     </>
   );

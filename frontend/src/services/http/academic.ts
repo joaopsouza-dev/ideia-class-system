@@ -1,13 +1,42 @@
 
 import type { AcademicService } from "../contracts";
-import { ApiError } from "../errors";
 import { httpClient, API_ENDPOINTS } from "../api";
 import type {
+  AlunoDisponivelResponseDTO,
   DisciplinaResponseDTO,
   TurmaResponseDTO,
   TurmaUsuarioResponseDTO,
+  UsuarioAdminResponseDTO,
 } from "../api/types";
-import type { Sessao, TurmaDetalhe, TurmaResumo } from "@/types";
+import type {
+  AlunoDisponivel,
+  AtualizarUsuarioInput,
+  ParticipanteTurma,
+  Sessao,
+  TurmaDetalhe,
+  TurmaResumo,
+  UsuarioAdmin,
+} from "@/types";
+import { normalizarPerfil } from "./auth";
+
+// ---------------------------------------------------------------------------
+// Mapeador: UsuarioAdminResponseDTO → UsuarioAdmin
+// ---------------------------------------------------------------------------
+function toUsuarioAdmin(dto: UsuarioAdminResponseDTO): UsuarioAdmin {
+  return {
+    id: dto.id,
+    nomeCompleto: dto.nomeCompleto,
+    email: dto.email,
+    perfil: normalizarPerfil(dto.perfil),
+    statusAtivo: dto.statusConta === "ATIVA",
+    criadoEm: dto.criadoEm,
+    turmas: dto.turmas.map((t) => ({
+      id: t.turmaId,
+      rotulo: t.turmaNome,
+      papel: t.papel === "DOCENTE" ? "DOCENTE" : "ALUNO",
+    })),
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Cache leve de disciplinas
@@ -65,7 +94,7 @@ async function toTurmaDetalhe(
     .map((p) => ({ id: p.usuarioId, nome: p.usuarioNome }));
 
   const totalAlunos = participantes.filter(
-    (p) => p.papel === "ALUNO" && p.status === "ATIVA",
+    (p) => p.papel === "DISCENTE" && p.status === "ATIVA",
   ).length;
 
   return {
@@ -74,6 +103,22 @@ async function toTurmaDetalhe(
     totalAlunos,
     totalMateriais: 0,
   };
+}
+
+/** Converte o vínculo do backend (papel DISCENTE/DOCENTE) para o modelo da interface. */
+function toParticipante(dto: TurmaUsuarioResponseDTO): ParticipanteTurma {
+  return {
+    vinculoId: dto.id,
+    usuarioId: dto.usuarioId,
+    nome: dto.usuarioNome,
+    email: dto.usuarioEmail,
+    papel: dto.papel === "DOCENTE" ? "DOCENTE" : "ALUNO",
+    status: dto.status,
+  };
+}
+
+function toAlunoDisponivel(dto: AlunoDisponivelResponseDTO): AlunoDisponivel {
+  return { id: dto.id, nomeCompleto: dto.nomeCompleto, email: dto.email };
 }
 
 // ---------------------------------------------------------------------------
@@ -156,22 +201,49 @@ export const httpAcademicService: AcademicService = {
   },
 
   async listUsuarios(_sessao: Sessao) {
-    throw new ApiError(
-      "NOT_IMPLEMENTED",
-      "Listagem de usuários não está disponível: o backend ainda não possui este endpoint.",
-      501,
+    const lista = await httpClient.get<UsuarioAdminResponseDTO[]>(
+      API_ENDPOINTS.USUARIOS.BASE,
     );
+    return lista.map(toUsuarioAdmin);
   },
 
-  async setUsuarioAtivo(
-    _sessao: Sessao,
-    _usuarioId: number,
-    _ativo: boolean,
-  ) {
-    throw new ApiError(
-      "NOT_IMPLEMENTED",
-      "Alteração de status de usuário não está disponível: o backend ainda não possui este endpoint.",
-      501,
+  async atualizarUsuario(_sessao: Sessao, usuarioId: number, dados: AtualizarUsuarioInput) {
+    const corpo: Record<string, string> = {};
+    if (dados.nomeCompleto !== undefined) corpo.nomeCompleto = dados.nomeCompleto;
+    if (dados.email !== undefined) corpo.email = dados.email;
+    if (dados.perfil !== undefined) corpo.perfil = dados.perfil === "PROFESSOR" ? "DOCENTE" : dados.perfil;
+    const dto = await httpClient.patch<UsuarioAdminResponseDTO>(API_ENDPOINTS.USUARIOS.BY_ID(usuarioId), corpo);
+    return toUsuarioAdmin(dto);
+  },
+
+  async listParticipantes(_sessao: Sessao, turmaId: number): Promise<ParticipanteTurma[]> {
+    const lista = await httpClient.get<TurmaUsuarioResponseDTO[]>(
+      API_ENDPOINTS.TURMAS.PARTICIPANTES(turmaId),
+    );
+    return lista.map(toParticipante);
+  },
+
+  async listAlunosDisponiveis(_sessao: Sessao): Promise<AlunoDisponivel[]> {
+    const lista = await httpClient.get<AlunoDisponivelResponseDTO[]>(API_ENDPOINTS.USUARIOS.ALUNOS);
+    return lista.map(toAlunoDisponivel);
+  },
+
+  async vincularAluno(_sessao: Sessao, turmaId: number, usuarioId: number): Promise<ParticipanteTurma> {
+    const dto = await httpClient.post<TurmaUsuarioResponseDTO>(
+      API_ENDPOINTS.TURMAS.PARTICIPANTES(turmaId),
+      { usuarioId, papel: "DISCENTE" },
+    );
+    return toParticipante(dto);
+  },
+
+  async removerParticipante(_sessao: Sessao, turmaId: number, vinculoId: number): Promise<void> {
+    await httpClient.delete<void>(API_ENDPOINTS.TURMAS.REMOVER_PARTICIPANTE(turmaId, vinculoId));
+  },
+
+  async setUsuarioAtivo(_sessao: Sessao, usuarioId: number, ativo: boolean) {
+    await httpClient.patch<UsuarioAdminResponseDTO>(
+      API_ENDPOINTS.USUARIOS.STATUS(usuarioId),
+      { ativo },
     );
   },
 };

@@ -1,6 +1,7 @@
 package com.catolica.ideiaspace.dto.conteudo;
 
 import com.catolica.ideiaspace.domain.Conteudo;
+import com.catolica.ideiaspace.domain.enums.StatusPublicacao;
 import com.catolica.ideiaspace.domain.enums.TipoMaterial;
 
 import java.time.LocalDateTime;
@@ -17,6 +18,7 @@ public record ConteudoResponseDTO(
         String titulo,
         String descricao,
         TipoMaterial tipoMaterial,
+        StatusPublicacao statusPublicacao,
         String mimeType,
         Long tamanhoBytes,
         String sha256,
@@ -35,6 +37,7 @@ public record ConteudoResponseDTO(
                 conteudo.getTitulo(),
                 conteudo.getDescricao(),
                 conteudo.getTipoMaterial(),
+                conteudo.getStatusPublicacao(),
                 conteudo.getMimeType(),
                 conteudo.getTamanhoBytes(),
                 conteudo.getSha256(),

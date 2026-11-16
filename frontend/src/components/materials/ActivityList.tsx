@@ -16,6 +16,8 @@ export const ACAO_LABEL: Record<TipoAcao, string> = {
   MARCA_DAGUA_ALTERADA: "Marca d'água alterada",
   UPLOAD: "Enviou um material",
   EDICAO: "Editou um material",
+  TENTATIVA_ACESSO_NEGADO: "Tentativa de acesso negado",
+  GEROU_URL_TEMPORARIA: "Gerou link temporário de acesso",
   PUBLICACAO: "Publicou um material",
   DESPUBLICACAO: "Despublicou um material",
   EXCLUSAO: "Excluiu um material",

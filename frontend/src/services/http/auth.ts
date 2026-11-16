@@ -9,7 +9,7 @@ export const SESSION_STORAGE_KEY = "ideiaspace:auth_session";
  * Converte o perfil retornado pelo backend para o Perfil aceito pela interface.
  * O backend utiliza "DOCENTE", enquanto a interface do frontend espera "PROFESSOR".
  */
-function normalizarPerfil(perfilBackend: string): Perfil {
+export function normalizarPerfil(perfilBackend: string): Perfil {
   if (perfilBackend === "DOCENTE") return "PROFESSOR";
   if (perfilBackend === "ADMIN") return "ADMIN";
   return "ALUNO";
@@ -117,6 +117,10 @@ export const httpAuthService: AuthService = {
       "O cadastro público de usuários ainda não está disponível no backend. O acesso é liberado mediante provisionamento administrativo.",
       501,
     );
+  },
+
+  async alterarSenha(_sessao: Sessao, senhaAtual: string, novaSenha: string): Promise<void> {
+    await httpClient.patch(API_ENDPOINTS.USUARIOS.ME_SENHA, { senhaAtual, novaSenha });
   },
 
   async requestPasswordReset(_email: string): Promise<void> {

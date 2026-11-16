@@ -4,7 +4,7 @@
  */
 
 export type PerfilUsuario = "ADMIN" | "DOCENTE" | "ALUNO";
-export type PapelTurma = "DOCENTE" | "ALUNO" | "MONITOR";
+export type PapelTurma = "DOCENTE" | "DISCENTE";
 export type StatusMatricula = "ATIVA" | "TRANCADA" | "CONCLUIDA" | "CANCELADA";
 export type StatusTurma = "PLANEJADA" | "ATIVA" | "CONCLUIDA" | "CANCELADA";
 export type TipoMaterial = "PDF" | "VIDEO";
@@ -117,6 +117,25 @@ export interface TurmaUsuarioRequestDTO {
   fimEm?: string | null;
 }
 
+export interface AlunoDisponivelResponseDTO {
+  id: number;
+  nomeCompleto: string;
+  email: string;
+}
+
+export interface AuditoriaResponseDTO {
+  id: number;
+  criadoEm: string;
+  usuarioId: number;
+  usuarioNome: string;
+  perfilUsuario: PerfilUsuario;
+  conteudoId: number | null;
+  conteudoTitulo: string | null;
+  acao: string;
+  ipOrigem: string | null;
+  userAgent: string | null;
+}
+
 export interface TurmaUsuarioResponseDTO {
   id: number;
   turmaId: number;
@@ -136,26 +155,14 @@ export type BackendTipoMaterial = "PDF_LIVRO" | "PDF_APOSTILA" | "VIDEO_AULA";
 // Conteúdo DTOs (/api/v1/conteudos)
 // ---------------------------------------------------------------------------
 
-export interface ConteudoRequestDTO {
-  turmaId: number;
-  professorId?: number | null;
-  titulo: string;
-  descricao?: string | null;
-  tipoMaterial: BackendTipoMaterial | TipoMaterial;
-  storagePath: string;
-  mimeType: string;
-  tamanhoBytes: number;
-  sha256?: string | null;
-}
+export type BackendStatusPublicacao = "RASCUNHO" | "PUBLICADO";
 
-export interface ConteudoUpdateDTO {
-  titulo: string;
-  descricao?: string | null;
-  tipoMaterial: BackendTipoMaterial | TipoMaterial;
-  storagePath: string;
-  mimeType: string;
-  tamanhoBytes: number;
-  sha256?: string | null;
+/**
+ * Cadastro/edição são multipart/form-data (campos + parte "arquivo"). O cliente NÃO envia
+ * caminho, MIME, tamanho nem hash: o backend os determina a partir do arquivo.
+ */
+export interface ConteudoStatusDTO {
+  statusPublicacao: BackendStatusPublicacao;
 }
 
 export interface ConteudoResponseDTO {
@@ -166,6 +173,7 @@ export interface ConteudoResponseDTO {
   titulo: string;
   descricao: string | null;
   tipoMaterial: BackendTipoMaterial | TipoMaterial;
+  statusPublicacao: BackendStatusPublicacao;
   mimeType: string;
   tamanhoBytes: number;
   sha256: string | null;
@@ -191,5 +199,18 @@ export interface UploadProgress {
 }
 
 export interface UploadOptions extends RequestOptions {
+  /** Método HTTP do envio multipart (padrão: POST). */
+  method?: "POST" | "PUT";
   onProgress?: (progress: UploadProgress) => void;
+}
+
+/** Resposta de GET /api/v1/usuarios (sem senha ou hash). */
+export interface UsuarioAdminResponseDTO {
+  id: number;
+  nomeCompleto: string;
+  email: string;
+  perfil: "ADMIN" | "DOCENTE" | "ALUNO";
+  statusConta: "ATIVA" | "INATIVA" | "BLOQUEADA";
+  criadoEm: string;
+  turmas: { turmaId: number; turmaNome: string; papel: "DISCENTE" | "DOCENTE" }[];
 }

@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Library, SearchX } from "lucide-react";
+import { Library, Plus, SearchX } from "lucide-react";
 import { LibraryFilters } from "@/components/materials/LibraryFilters";
 import { MaterialCard } from "@/components/materials/MaterialCard";
-import { Button } from "@/components/ui/Button";
+import { Button, LinkButton } from "@/components/ui/Button";
 import { PageHeader } from "@/components/ui/Card";
 import { Pagination } from "@/components/ui/Pagination";
 import { CardGridSkeleton, EmptyState, ErrorState } from "@/components/ui/States";
@@ -35,7 +35,14 @@ export default function LibraryPage() {
       <PageHeader
         eyebrow="Acervo"
         title="Biblioteca"
-        description="Apostilas e videoaulas disponíveis para as suas turmas. Os conteúdos abrem no visualizador protegido."
+        description="Apostilas e videoaulas disponíveis para as suas turmas."
+        actions={
+          sessao.usuario.perfil !== "ALUNO" ? (
+            <LinkButton to="/materiais/novo">
+            <Plus className="size-4" aria-hidden /> Novo material
+          </LinkButton>
+          ) : undefined
+        }
       />
       {loading && !data ? (
         <CardGridSkeleton />

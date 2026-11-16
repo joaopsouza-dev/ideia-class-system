@@ -19,7 +19,7 @@ export interface MaterialInput {
   descricao: string;
   tipo: TipoMaterial;
   turmaId: number;
-  status: StatusPublicacao; // exigido pelo mock/editor; o adapter HTTP ainda não usa (backend sem status).
+  status: StatusPublicacao;
   arquivo?: File | null;
 }
 
@@ -91,7 +91,7 @@ export interface Conteudo {
   tipo: TipoMaterial;
   tamanhoBytes: number;
   criadoEm: string;
-  status?: StatusPublicacao; // optional, not provided by backend.
+  status?: StatusPublicacao;
   paginas?: number;
   duracaoSegundos?: number;
   turma: TurmaResumo;
@@ -123,6 +123,8 @@ export type TipoAcao =
   | "TENTATIVA_COPIA"
   | "PERDA_DE_FOCO"
   | "MARCA_DAGUA_ALTERADA"
+  | "TENTATIVA_ACESSO_NEGADO"
+  | "GEROU_URL_TEMPORARIA"
   | "UPLOAD"
   | "EDICAO"
   | "PUBLICACAO"
@@ -142,6 +144,23 @@ export interface LogAcesso {
   detalhe?: string;
 }
 
+/** Participante de uma turma (vínculo DISCENTE ou DOCENTE, com status da matrícula). */
+export interface ParticipanteTurma {
+  vinculoId: number;
+  usuarioId: number;
+  nome: string;
+  email: string;
+  papel: PapelNaTurma;
+  status: string;
+}
+
+/** Aluno ativo que pode ser matriculado. */
+export interface AlunoDisponivel {
+  id: number;
+  nomeCompleto: string;
+  email: string;
+}
+
 export interface RegistroAcessoInput {
   tipoAcao: TipoAcao;
   conteudoId?: string;
@@ -152,6 +171,13 @@ export interface UsuarioAdmin extends Usuario {
   statusAtivo: boolean;
   criadoEm: string;
   turmas: { id: number; rotulo: string; papel: PapelNaTurma }[];
+}
+
+/** Campos editáveis pelo administrador (ou nome/e-mail pelo próprio usuário). */
+export interface AtualizarUsuarioInput {
+  nomeCompleto?: string;
+  email?: string;
+  perfil?: Perfil;
 }
 
 export interface RegistroUsuarioInput {

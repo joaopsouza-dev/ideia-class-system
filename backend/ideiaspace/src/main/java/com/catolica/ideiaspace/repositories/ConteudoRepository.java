@@ -29,7 +29,8 @@ public interface ConteudoRepository extends JpaRepository<Conteudo, Long> {
             + "CAST(:storagePath AS TEXT), "
             + "CAST(:mimeType AS VARCHAR), "
             + "CAST(:tamanhoBytes AS BIGINT), "
-            + "CAST(:sha256 AS VARCHAR))", nativeQuery = true)
+            + "CAST(:sha256 AS VARCHAR), "
+            + "CAST(:statusPublicacao AS status_publicacao_enum))", nativeQuery = true)
     Long criarPorFuncao(
             @Param("turmaId") Long turmaId,
             @Param("professorId") Long professorId,
@@ -39,7 +40,8 @@ public interface ConteudoRepository extends JpaRepository<Conteudo, Long> {
             @Param("storagePath") String storagePath,
             @Param("mimeType") String mimeType,
             @Param("tamanhoBytes") Long tamanhoBytes,
-            @Param("sha256") String sha256);
+            @Param("sha256") String sha256,
+            @Param("statusPublicacao") String statusPublicacao);
 
     /*
      * Soft delete: DELETE não é concedido ao app_backend, e a coluna excluido_em não tem UPDATE.

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { FlaskConical, LogOut, Menu, ShieldCheck, X } from "lucide-react";
+import { FlaskConical, LogOut, Menu, X } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { IconButton } from "@/components/ui/Button";
 import { useAuth, useSessao } from "@/context/AuthContext";
@@ -62,15 +62,6 @@ export function AppShell() {
           </NavLink>
         ))}
       </nav>
-      <div className="m-3 rounded border border-vacuo-line p-3.5">
-        <div className="flex items-center gap-2 font-ui text-xs font-semibold text-ciano">
-          <ShieldCheck className="size-4" aria-hidden />
-          Conteúdo protegido
-        </div>
-        <p className="mt-1.5 text-xs leading-relaxed text-white/65">
-          Seus acessos são identificados e registrados para proteger a propriedade intelectual.
-        </p>
-      </div>
       <div className="border-t border-white/10 p-3">
         <div className="flex items-center gap-3 rounded-lg p-2">
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-estrato-700 font-ui text-sm font-semibold ring-2 ring-ciano/60">

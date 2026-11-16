@@ -1,27 +1,26 @@
 /**
- * Adapter HTTP real para MaterialService (Etapa 2 — Integração da Biblioteca).
+ * Adapter HTTP real para MaterialService (Etapas 2 e 3).
  *
- * Implementa o contrato MaterialService usando exclusivamente os endpoints
- * confirmados no backend Spring Boot:
- *   - GET /api/v1/conteudos            → lista conteúdos (filtrados pelo RLS do banco)
- *   - GET /api/v1/conteudos?turmaId=X  → lista conteúdos de uma turma específica
- *   - GET /api/v1/conteudos/{id}       → busca conteúdo por ID
- *   - GET /api/v1/turmas/{id}          → resolve metadados da turma e disciplina
+ * Endpoints do backend (/api/v1/conteudos):
+ *   - GET    /                 lista (RLS: aluno não recebe rascunhos)
+ *   - GET    /{id}             busca por ID
+ *   - POST   /                 cadastro com upload (multipart: campos + "arquivo")
+ *   - PUT    /{id}             edição e substituição opcional do arquivo (multipart)
+ *   - PATCH  /{id}/status      publicar (PUBLICADO) / despublicar (RASCUNHO)
+ *   - DELETE /{id}             exclusão lógica
  *
- * Funcionalidades não incluídas nesta primeira entrega (lançam NOT_IMPLEMENTED):
- *   - create    → cadastro de materiais com upload real
- *   - update    → edição de materiais
- *   - setStatus → publicação/despublicação
- *   - remove    → exclusão de materiais
+ * Caminho físico, MIME, tamanho e hash são definidos pelo servidor e nunca trafegam daqui.
  */
 
-import type { MaterialService } from "../contracts";
+import type { MaterialService, UploadProgress } from "../contracts";
 import { ApiError } from "../errors";
 import { httpClient, API_ENDPOINTS } from "../api";
 import type {
   ConteudoResponseDTO,
   TurmaResponseDTO,
   DisciplinaResponseDTO,
+  TurmaUsuarioResponseDTO,
+  BackendTipoMaterial,
 } from "../api/types";
 import type {
   Conteudo,
@@ -125,7 +124,7 @@ async function toConteudo(dto: ConteudoResponseDTO): Promise<Conteudo> {
     tipo: mapTipoMaterial(dto.tipoMaterial),
     tamanhoBytes: dto.tamanhoBytes ?? 0,
     criadoEm: dto.criadoEm,
-    status: undefined,
+    status: dto.statusPublicacao === "PUBLICADO" ? "PUBLICADO" : "RASCUNHO",
     turma,
     professor: {
       id: dto.professorId ?? 0,
@@ -147,8 +146,7 @@ export const httpMaterialService: MaterialService = {
    *
    * O parâmetro turmaId é enviado na requisição quando especificado.
    * Filtros adicionais de busca textual, tipo e disciplina são
-   * aplicados sobre a lista retornada. O backend ainda não persiste status de publicação,
-   * portanto não há filtro por situação.
+   * aplicados sobre a lista retornada. O status de publicação vem do backend.
    */
   async list(_sessao: Sessao, filtros?: MaterialFiltros): Promise<Conteudo[]> {
     const params = filtros?.turmaId ? { turmaId: filtros.turmaId } : undefined;
@@ -178,6 +176,9 @@ export const httpMaterialService: MaterialService = {
       if (filtros.tipo) {
         result = result.filter((c) => c.tipo === filtros.tipo);
       }
+      if (filtros.status) {
+        result = result.filter((c) => c.status === filtros.status);
+      }
       if (filtros.disciplinaId) {
         result = result.filter((c) => c.turma.disciplinaId === filtros.disciplinaId);
       }
@@ -203,56 +204,83 @@ export const httpMaterialService: MaterialService = {
     return toConteudo(dto);
   },
 
-  /**
-   * NÃO IMPLEMENTADO nesta primeira entrega de integração.
-   * Cadastro de novos conteúdos requer upload/armazenamento real (Etapa final).
-   */
-  async create(_sessao: Sessao, _input: MaterialInput): Promise<Conteudo> {
-    throw new ApiError(
-      "NOT_IMPLEMENTED",
-      "Cadastro de materiais não disponível nesta etapa de integração.",
-      501,
-    );
+  /** Cadastro com upload real (multipart), com progresso e cancelamento. */
+  async create(sessao: Sessao, input: MaterialInput, opts?: MutationOpts): Promise<Conteudo> {
+    if (!input.arquivo) {
+      throw new ApiError("VALIDATION", "Selecione o arquivo do material.", 400);
+    }
+    const form = new FormData();
+    form.append("turmaId", String(input.turmaId));
+    form.append("titulo", input.titulo.trim());
+    form.append("descricao", input.descricao.trim());
+    form.append("tipoMaterial", toBackendTipo(input.tipo));
+    form.append("statusPublicacao", input.status);
+    if (sessao.usuario.perfil === "ADMIN") {
+      form.append("professorId", String(await resolverProfessorDaTurma(input.turmaId)));
+    }
+    form.append("arquivo", input.arquivo, input.arquivo.name);
+
+    const dto = await httpClient.upload<ConteudoResponseDTO>(API_ENDPOINTS.CONTEUDOS.BASE, form, {
+      method: "POST",
+      onProgress: opts?.onProgress,
+      signal: opts?.signal,
+    });
+    return toConteudo(dto);
   },
 
-  /**
-   * NÃO IMPLEMENTADO nesta primeira entrega de integração.
-   */
+  /** Edição de título/descrição e, opcionalmente, substituição do arquivo. */
   async update(
     _sessao: Sessao,
-    _id: string,
-    _input: Partial<MaterialInput>,
+    id: string,
+    input: Partial<MaterialInput>,
+    opts?: MutationOpts,
   ): Promise<Conteudo> {
-    throw new ApiError(
-      "NOT_IMPLEMENTED",
-      "Edição de materiais não disponível nesta etapa de integração.",
-      501,
-    );
+    if (!id || id.trim() === "") {
+      throw new ApiError("VALIDATION", "O ID do material é obrigatório.", 400);
+    }
+    const form = new FormData();
+    form.append("titulo", (input.titulo ?? "").trim());
+    form.append("descricao", (input.descricao ?? "").trim());
+    if (input.arquivo) {
+      form.append("arquivo", input.arquivo, input.arquivo.name);
+    }
+
+    const dto = await httpClient.upload<ConteudoResponseDTO>(API_ENDPOINTS.CONTEUDOS.BY_ID(id), form, {
+      method: "PUT",
+      onProgress: opts?.onProgress,
+      signal: opts?.signal,
+    });
+    return toConteudo(dto);
   },
 
-  /**
-   * NÃO IMPLEMENTADO nesta primeira entrega de integração.
-   */
-  async setStatus(
-    _sessao: Sessao,
-    _id: string,
-    _status: StatusPublicacao,
-  ): Promise<Conteudo> {
-    throw new ApiError(
-      "NOT_IMPLEMENTED",
-      "Alteração de situação de material não disponível nesta etapa de integração.",
-      501,
-    );
+  /** Publica (PUBLICADO) ou despublica (RASCUNHO). */
+  async setStatus(_sessao: Sessao, id: string, status: StatusPublicacao): Promise<Conteudo> {
+    const dto = await httpClient.patch<ConteudoResponseDTO>(API_ENDPOINTS.CONTEUDOS.STATUS(id), {
+      statusPublicacao: status,
+    });
+    return toConteudo(dto);
   },
 
-  /**
-   * NÃO IMPLEMENTADO nesta primeira entrega de integração.
-   */
-  async remove(_sessao: Sessao, _id: string): Promise<void> {
-    throw new ApiError(
-      "NOT_IMPLEMENTED",
-      "Exclusão de materiais não disponível nesta etapa de integração.",
-      501,
-    );
+  /** Exclusão lógica no backend. */
+  async remove(_sessao: Sessao, id: string): Promise<void> {
+    await httpClient.delete<void>(API_ENDPOINTS.CONTEUDOS.BY_ID(id));
   },
 };
+
+type MutationOpts = { onProgress?: (p: UploadProgress) => void; signal?: AbortSignal };
+
+function toBackendTipo(tipo: TipoMaterial): BackendTipoMaterial {
+  return tipo === "VIDEO" ? "VIDEO_AULA" : "PDF_APOSTILA";
+}
+
+/** ADMIN cadastra em nome de um docente: usa o primeiro DOCENTE ativo da turma. */
+async function resolverProfessorDaTurma(turmaId: number): Promise<number> {
+  const participantes = await httpClient.get<TurmaUsuarioResponseDTO[]>(
+    API_ENDPOINTS.TURMAS.PARTICIPANTES(turmaId),
+  );
+  const docente = participantes.find((p) => p.papel === "DOCENTE" && p.status === "ATIVA");
+  if (!docente) {
+    throw new ApiError("VALIDATION", "A turma não possui docente ativo para ser o autor do material.", 400);
+  }
+  return docente.usuarioId;
+}

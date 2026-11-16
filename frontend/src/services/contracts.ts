@@ -13,6 +13,9 @@ import type {
   LogAcesso,
   MaterialFiltros,
   MaterialInput,
+  AtualizarUsuarioInput,
+  AlunoDisponivel,
+  ParticipanteTurma,
   RegistroAcessoInput,
   RegistroUsuarioInput,
   Sessao,
@@ -30,6 +33,8 @@ export interface AuthService {
   logout(sessao: Sessao): Promise<void>;
   /** Recupera a sessão persistida (no mock, sessionStorage; na API, cookie/refresh token). */
   restore(): Promise<Sessao | null>;
+  /** Altera a senha do próprio usuário; exige a senha atual. */
+  alterarSenha(sessao: Sessao, senhaAtual: string, novaSenha: string): Promise<void>;
 }
 
 export interface AcademicService {
@@ -40,6 +45,15 @@ export interface AcademicService {
   listTurmasGerenciaveis(sessao: Sessao): Promise<TurmaResumo[]>;
   listUsuarios(sessao: Sessao): Promise<UsuarioAdmin[]>;
   setUsuarioAtivo(sessao: Sessao, usuarioId: number, ativo: boolean): Promise<void>;
+  atualizarUsuario(sessao: Sessao, usuarioId: number, dados: AtualizarUsuarioInput): Promise<UsuarioAdmin>;
+  /** Participantes (alunos e docentes) de uma turma. */
+  listParticipantes(sessao: Sessao, turmaId: number): Promise<ParticipanteTurma[]>;
+  /** Alunos ativos disponíveis para matrícula (ADMIN ou DOCENTE). */
+  listAlunosDisponiveis(sessao: Sessao): Promise<AlunoDisponivel[]>;
+  /** Matricula um aluno (DISCENTE) na turma. */
+  vincularAluno(sessao: Sessao, turmaId: number, usuarioId: number): Promise<ParticipanteTurma>;
+  /** Remove (soft-delete) o vínculo de um participante. */
+  removerParticipante(sessao: Sessao, turmaId: number, vinculoId: number): Promise<void>;
 }
 
 export interface UploadProgress {

@@ -1,0 +1,8 @@
+# Contexto de build limpo: o jar é sempre gerado DENTRO da imagem (mvn clean package).
+target/
+.idea/
+.git/
+.env
+.env.*
+data/
+*.iml

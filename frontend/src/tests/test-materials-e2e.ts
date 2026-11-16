@@ -27,7 +27,7 @@ async function assert(condition: boolean, msg: string) {
 
 async function run() {
   console.log("===============================================================");
-  console.log("INICIANDO TESTES DE VALIDAÇÃO: ETAPA 2 — BIBLIOTECA DE MATERIAIS");
+  console.log("INICIANDO TESTES DE VALIDAÇÃO: ETAPAS 2 E 3 — BIBLIOTECA E GERENCIAMENTO DE MATERIAIS");
   console.log("===============================================================\n");
 
   // -------------------------------------------------------------------------
@@ -66,7 +66,7 @@ async function run() {
   });
 
   assert(typeof sample.id === "string", "ID do material mapeado como string");
-  assert(sample.status === undefined, "Status não é inventado: backend ainda não fornece situação de publicação");
+  assert(sample.status === "PUBLICADO" || sample.status === "RASCUNHO", "Status de publicação vem do backend");
   assert(sample.tipo === "PDF" || sample.tipo === "VIDEO", "Tipo de material válido (PDF ou VIDEO)");
   assert(!!sample.turma && !!sample.turma.rotulo, "TurmaResumo preenchido com rotulo");
   assert(!!sample.professor && !!sample.professor.nome, "Dados do professor preenchidos");
@@ -157,33 +157,63 @@ async function run() {
   }
 
   // -------------------------------------------------------------------------
-  // 7. Teste das Restrições de Mutação (Create, Update, SetStatus, Remove)
+  // 7. Ciclo real de gerenciamento (Etapa 3): cadastro, edição, publicação, exclusão
   // -------------------------------------------------------------------------
-  console.log("\n7. Restrições de Mutação (lançam NOT_IMPLEMENTED):");
-  httpClient.setToken(adminSessao.token!);
+  console.log("\n7. Gerenciamento real (docente): upload, edição, publicação e exclusão:");
+  httpClient.setToken(docenteSessao.token!);
+  const turmaDocente = materialsDocente[0]?.turma.id ?? sample.turma.id;
+  const pdfBytes = new TextEncoder().encode("%PDF-1.4\nteste e2e\n%%EOF\n");
+  const arquivo = new File([pdfBytes], "e2e.pdf", { type: "application/pdf" });
 
+  const criado = await httpMaterialService.create(docenteSessao, {
+    titulo: "Material E2E " + Date.now(),
+    descricao: "criado pelo teste",
+    tipo: "PDF",
+    turmaId: turmaDocente,
+    status: "RASCUNHO",
+    arquivo,
+  });
+  assert(criado.status === "RASCUNHO" && criado.tamanhoBytes === pdfBytes.length, "Cadastro real de PDF como rascunho");
+
+  httpClient.setToken(alunoSessao.token!);
   try {
-    await httpMaterialService.create(adminSessao, {} as any);
+    await httpMaterialService.get(alunoSessao, criado.id);
+    assert(false, "Aluno não deveria ver rascunho");
   } catch (err: any) {
-    assert(err instanceof ApiError && err.code === "NOT_IMPLEMENTED" && err.status === 501, "create lança NOT_IMPLEMENTED (501)");
+    assert(err instanceof ApiError && err.status === 404, "Aluno recebe 404 para rascunho");
   }
 
-  try {
-    await httpMaterialService.update(adminSessao, "1", {});
-  } catch (err: any) {
-    assert(err instanceof ApiError && err.code === "NOT_IMPLEMENTED" && err.status === 501, "update lança NOT_IMPLEMENTED (501)");
-  }
+  httpClient.setToken(docenteSessao.token!);
+  const publicado = await httpMaterialService.setStatus(docenteSessao, criado.id, "PUBLICADO");
+  assert(publicado.status === "PUBLICADO", "Publicação funciona");
+  const editado = await httpMaterialService.update(docenteSessao, criado.id, { titulo: "Título editado E2E", descricao: "x" });
+  assert(editado.titulo === "Título editado E2E", "Edição de título funciona");
+  const novoArquivo = new File([new TextEncoder().encode("%PDF-1.4\nsubstituto maior\n%%EOF\n")], "n.pdf");
+  const substituido = await httpMaterialService.update(docenteSessao, criado.id, { titulo: "Título editado E2E", descricao: "x", arquivo: novoArquivo });
+  assert(substituido.tamanhoBytes !== criado.tamanhoBytes, "Substituição de arquivo atualiza o tamanho");
 
   try {
-    await httpMaterialService.setStatus(adminSessao, "1", "RASCUNHO");
+    await httpMaterialService.create(docenteSessao, { titulo: "Inválido", descricao: "", tipo: "PDF", turmaId: turmaDocente, status: "RASCUNHO", arquivo: new File(["texto"], "x.pdf", { type: "application/pdf" }) });
+    assert(false, "Arquivo inválido deveria ser rejeitado");
   } catch (err: any) {
-    assert(err instanceof ApiError && err.code === "NOT_IMPLEMENTED" && err.status === 501, "setStatus lança NOT_IMPLEMENTED (501)");
+    assert(err instanceof ApiError && err.status === 415, "Arquivo inválido rejeitado pelo backend (415)");
   }
 
+  httpClient.setToken(alunoSessao.token!);
   try {
-    await httpMaterialService.remove(adminSessao, "1");
+    await httpMaterialService.remove(alunoSessao, criado.id);
+    assert(false, "Aluno não deveria excluir");
   } catch (err: any) {
-    assert(err instanceof ApiError && err.code === "NOT_IMPLEMENTED" && err.status === 501, "remove lança NOT_IMPLEMENTED (501)");
+    assert(err instanceof ApiError && err.status === 403, "Aluno não gerencia materiais (403)");
+  }
+
+  httpClient.setToken(docenteSessao.token!);
+  await httpMaterialService.remove(docenteSessao, criado.id);
+  try {
+    await httpMaterialService.get(docenteSessao, criado.id);
+    assert(false, "Material excluído deveria sumir");
+  } catch (err: any) {
+    assert(err instanceof ApiError && err.status === 404, "Exclusão lógica: material some (404)");
   }
 
   console.log("\n===============================================================");

@@ -34,3 +34,6 @@ build/
 
 ### Ambiente local (segredos) ###
 .env
+
+### Armazenamento local de uploads (dados de usuários) ###
+data/
