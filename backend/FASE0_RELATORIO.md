@@ -1,5 +1,8 @@
 # RELATÓRIO DE ALTERAÇÕES — FASE 0
 
+> **Registro histórico:** este relatório descreve o estado da Fase 0, não o status atual do sistema. Uma referência parcial a segredo foi removida desta cópia; versões anteriores do repositório podem ainda conter credenciais. Trate valores anteriormente versionados como expostos e faça a rotação com a equipe. O histórico Git não foi reescrito.
+
+
 ## 1. Resumo executivo
 
 A Fase 0 (contenção e segurança) foi executada sobre o backend original. Situação inicial:
@@ -165,7 +168,7 @@ Os testes de integração agora dependem de `SPRING_TEST_DATASOURCE_PASSWORD` e 
 
 Problemas encontrados que não foram corrigidos nesta fase:
 
-1. **Rotação obrigatória de segredos (urgente).** O JWT secret (`64fb453c…`), as chaves `APP_CPF_KEY` e `APP_CPF_HMAC_KEY`, e as senhas `app_backend_password` e `postgres_dev_password` estavam em `.idea/workspace.xml` e no arquivo original. Devem ser considerados comprometidos: gere novos valores e troque as senhas no banco. Se o repositório já foi publicado, remover o arquivo não basta; é preciso reescrever o histórico ou tratar os valores como vazados.
+1. **Rotação obrigatória de segredos (urgente).** O JWT secret (`[trecho de segredo redigido]`), as chaves `APP_CPF_KEY` e `APP_CPF_HMAC_KEY`, e as senhas `app_backend_password` e `postgres_dev_password` estavam em `.idea/workspace.xml` e no arquivo original. Devem ser considerados comprometidos: gere novos valores e troque as senhas no banco. Se o repositório já foi publicado, remover o arquivo não basta; é preciso reescrever o histórico ou tratar os valores como vazados.
 2. **CPF não é criptografado.** Em `AuthService.provisionar`, `cpf_cifrado` é `"ENC_" + email` e `cpf_lookup_hmac` é o SHA-256 do e-mail. As chaves `APP_CPF_KEY` e `APP_CPF_HMAC_KEY` são validadas na inicialização, mas **não são usadas em lugar nenhum**. Isso é um problema de privacidade (LGPD). Deve ser corrigido com criptografia real e HMAC com chave, em fase própria, com cuidado com as migrations e com os dados existentes.
 3. **`storagePath` controlado pelo cliente.** `ConteudoRequestDTO.storagePath` e `ConteudoUpdateDTO.storagePath` são aceitos e gravados diretamente (`ConteudoService.cadastrar` e `atualizar`). Só há validação de formato (não é URL). Solução prevista para a Fase 2: o servidor gera o caminho (por exemplo, UUID em diretório controlado), o cliente envia apenas metadados, e o campo sai do DTO de entrada. A constraint `ck_conteudo_storage_path_valido` e o índice único devem ser reavaliados nessa fase.
 4. **Função de provisionamento no banco ainda aceita ADMIN sem administrador prévio.** `fn_provisionar_usuario_inicial` permite qualquer `perfil` quando não existe ADMIN. Hoje a proteção é a camada HTTP mais o bootstrap. Como defesa em profundidade, convém uma nova migration (não alterar as existentes) que bloqueie ADMIN nessa situação, deixando o bootstrap por outro caminho.

@@ -181,6 +181,25 @@ export interface ConteudoResponseDTO {
   atualizadoEm: string;
 }
 
+/**
+ * Resposta de GET /api/v1/conteudos/{id}/acesso. "url" é temporária (Signed URL V4 do bucket,
+ * ou caminho relativo da API no provedor local de desenvolvimento) e nunca deve ser persistida.
+ */
+export interface AcessoConteudoResponseDTO {
+  url: string;
+  expiraEm: string;
+  tipo: "PDF" | "VIDEO";
+  mimeType: string;
+}
+
+/** Ações que o navegador pode reportar a POST /api/v1/conteudos/{id}/eventos. */
+export type BackendAcaoEventoCliente = "TENTATIVA_DOWNLOAD" | "TENTATIVA_PRINT_DETECTADA";
+
+export interface EventoAcessoRequestDTO {
+  acao: BackendAcaoEventoCliente;
+  detalhe?: string;
+}
+
 // ---------------------------------------------------------------------------
 // Opções de Requisição do Cliente HTTP
 // ---------------------------------------------------------------------------

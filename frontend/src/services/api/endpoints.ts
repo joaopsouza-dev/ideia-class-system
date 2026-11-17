@@ -33,5 +33,9 @@ export const API_ENDPOINTS = {
     BASE: "/api/v1/conteudos",
     BY_ID: (id: number | string) => `/api/v1/conteudos/${id}`,
     STATUS: (id: number | string) => `/api/v1/conteudos/${id}/status`,
+    /** Visualização protegida: URL temporária assinada + registro de abertura (servidor). */
+    ACESSO: (id: number | string) => `/api/v1/conteudos/${id}/acesso`,
+    /** Tentativas detectadas no navegador (download/impressão/captura). */
+    EVENTOS: (id: number | string) => `/api/v1/conteudos/${id}/eventos`,
   },
 } as const;

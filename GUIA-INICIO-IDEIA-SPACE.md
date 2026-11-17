@@ -1,4 +1,5 @@
 # Guia de início do Ideia Space
+> Este é o guia operacional detalhado para primeiro provisionamento e uso. Para visão geral, tecnologias, comandos de teste e estado atual, comece pelo [README principal](README.md). Os documentos técnicos específicos estão listados no README.
 
 Este guia leva você do zero até o sistema rodando na sua máquina, com um professor de teste cadastrado e com disciplinas e turmas associadas a ele.
 
@@ -408,11 +409,13 @@ Nova requisição:
 - **Authorization:** herdada (Bearer `{{token}}`)
 - **Body** > **raw** > **JSON**:
 
+Escolha uma senha forte para a conta local. O valor no exemplo abaixo é apenas um marcador, não uma credencial válida.
+
 ```json
 {
   "nomeCompleto": "Professor Teste",
   "email": "professor.teste@ideiaspace.com",
-  "senha": "senha_do_professor_12345",
+  "senha": "<SENHA_FORTE_ESCOLHIDA_LOCALMENTE>",
   "perfil": "DOCENTE"
 }
 ```

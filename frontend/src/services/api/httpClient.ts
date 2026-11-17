@@ -80,6 +80,15 @@ export class HttpClient {
   }
 
   /**
+   * Converte um endereço devolvido pela API em URL absoluta. URLs absolutas (Signed URLs do
+   * bucket) passam inalteradas; caminhos relativos (provedor local) recebem a URL base da API.
+   */
+  public resolveUrl(url: string): string {
+    if (/^https?:\/\//i.test(url)) return url;
+    return `${this.baseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+  }
+
+  /**
    * Registra listener para respostas 401 (token expirado ou inválido).
    */
   public onUnauthorized(callback: AuthFailureCallback): () => void {

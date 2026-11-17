@@ -5,3 +5,10 @@
 
 # Estado local da IDE (pode conter configurações sensíveis)
 .idea/workspace.xml
+
+### Credenciais de serviço (NUNCA versionar) ###
+secrets/
+*-firebase-adminsdk-*.json
+*service-account*.json
+firebase-credentials*.json
+credencial*.json
