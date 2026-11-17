@@ -1,786 +1,252 @@
-# Repositório Digital de Conteúdo Acadêmico
+# Ideia Space
 
-Sistema web para gerenciamento, organização e disponibilização protegida de conteúdos acadêmicos, como livros, apostilas e videoaulas.
+Repositório digital para organizar materiais acadêmicos e disponibilizá-los a professores e alunos com controle de acesso por perfil e vínculo com as turmas. O sistema reúne a administração de usuários, disciplinas, turmas e conteúdos em uma aplicação web, com armazenamento privado e registro de acessos.
 
-O projeto tem como objetivo criar uma plataforma na qual conteúdos possam ser organizados por disciplinas e turmas, permitindo que usuários autorizados tenham acesso aos materiais de acordo com seu perfil e vínculo acadêmico.
+> A proteção no navegador reduz a exposição e registra eventos, mas não impede capturas feitas por outro dispositivo. O projeto não promete proteção absoluta contra cópia.
 
-Além da disponibilização dos conteúdos, o sistema possui como um de seus principais focos a **proteção e rastreabilidade dos materiais**, buscando dificultar sua extração e registrar os acessos realizados.
+## Navegação
 
-> **Importante:** nenhuma aplicação web consegue impedir completamente a cópia de um conteúdo que foi disponibilizado para visualização. Por isso, o projeto trabalha com múltiplas camadas de proteção, buscando dificultar a extração, controlar o acesso e possibilitar a identificação dos usuários.
+- [Funcionalidades](#funcionalidades)
+- [Arquitetura e tecnologias](#arquitetura-e-tecnologias)
+- [Estrutura do repositório](#estrutura-do-repositório)
+- [Pré-requisitos](#pré-requisitos)
+- [Executar localmente no Windows](#executar-localmente-no-windows)
+- [Armazenamento de arquivos](#armazenamento-de-arquivos)
+- [Banco de dados e testes](#banco-de-dados-e-testes)
+- [Documentação complementar](#documentação-complementar)
+- [Contexto acadêmico](#contexto-acadêmico)
 
----
+## Funcionalidades
 
-## 📌 Objetivos
+- Login com token JWT e autorização por perfil (`ADMIN`, `DOCENTE`, `ALUNO`). O provisionamento de contas é restrito a administradores.
+- Administração de usuários, disciplinas, turmas e vínculos de participantes.
+- Cadastro, publicação, edição e exclusão lógica de materiais vinculados a turmas.
+- Upload de PDFs e vídeos MP4/WebM com validação de conteúdo e limites configuráveis no backend.
+- Acesso a conteúdo condicionado ao perfil, à publicação e ao vínculo acadêmico.
+- Visualizador de PDF e player de vídeo no frontend, com marca d'água e eventos de proteção como medidas dissuasivas.
+- Armazenamento privado local ou no Google Cloud Storage por meio do Firebase Storage; URLs temporárias são emitidas pelo backend após autorização.
+- Auditoria de aberturas, tentativas de acesso negado e eventos reportados pelo navegador.
+- Row-Level Security (RLS) no PostgreSQL como camada adicional de isolamento dos dados.
 
-* Centralizar conteúdos acadêmicos em uma única plataforma.
-* Organizar materiais por disciplinas e turmas.
-* Permitir diferentes níveis de acesso de acordo com o perfil do usuário.
-* Disponibilizar documentos para visualização diretamente na plataforma.
-* Permitir reprodução de videoaulas por streaming.
-* Dificultar o download e a extração dos conteúdos.
-* Aplicar identificação visual aos materiais por meio de marca d'água.
-* Registrar acessos e ações relacionadas aos conteúdos.
-* Desenvolver uma arquitetura preparada para futuras evoluções do sistema.
+## Arquitetura e tecnologias
 
----
-
-## 🚀 Funcionalidades
-
-### 👤 Usuários
-
-* Cadastro de usuários.
-* Autenticação.
-* Gerenciamento de perfis.
-* Controle de permissões.
-* Associação de usuários às turmas.
-* Definição de papel do usuário dentro de uma turma.
-
-### 🎓 Estrutura acadêmica
-
-* Cadastro de disciplinas.
-* Cadastro de turmas.
-* Associação entre disciplinas e turmas.
-* Associação entre usuários e turmas.
-* Identificação de usuários como docentes ou discentes em cada turma.
-
-### 📚 Conteúdos
-
-A plataforma poderá trabalhar com diferentes tipos de materiais:
-
-* Livros em PDF.
-* Apostilas em PDF.
-* Videoaulas.
-* Outros materiais acadêmicos que possam ser incorporados futuramente.
-
-Cada conteúdo possui informações como:
-
-* título;
-* descrição;
-* tipo;
-* turma relacionada;
-* professor responsável;
-* localização do arquivo;
-* tamanho;
-* data de envio.
-
-### 📄 Visualização de documentos
-
-Os documentos serão disponibilizados por meio de um visualizador integrado à aplicação.
-
-Entre as medidas previstas estão:
-
-* visualização dentro da plataforma;
-* ausência de acesso público direto ao arquivo original;
-* controle de autorização pelo backend;
-* marca d'água identificando o usuário;
-* mecanismos para dificultar cópia e extração;
-* possibilidade de registro das ações realizadas durante o acesso.
-
-### 🎥 Videoaulas
-
-As videoaulas serão disponibilizadas por meio de streaming.
-
-A arquitetura prevê a utilização de tecnologias como HLS para segmentação da transmissão, evitando a disponibilização direta de um único arquivo de vídeo público.
-
-Também poderão ser utilizados:
-
-* URLs de acesso temporário;
-* controle de autorização;
-* marca d'água;
-* registro de acessos;
-* mecanismos adicionais de proteção.
-
-### 🔐 Segurança e rastreabilidade
-
-A segurança dos conteúdos será baseada em diferentes camadas:
-
-```text
-Autenticação
-     ↓
-Autorização
-     ↓
-Validação do vínculo com a turma
-     ↓
-Controle de acesso ao conteúdo
-     ↓
-Visualização protegida
-     ↓
-Marca d'água
-     ↓
-Registro de acesso
+```mermaid
+flowchart LR
+    U[Professor, aluno ou administrador] --> FE[Frontend React]
+    FE -->|API REST com JWT| BE[Backend Spring Boot]
+    BE -->|JPA e funções SQL; RLS| DB[(PostgreSQL)]
+    BE -->|salvar, remover e assinar acesso| OS[Abstração de armazenamento]
+    OS --> LOCAL[Volume local privado]
+    OS --> GCS[Firebase Storage / Cloud Storage]
+    FE -->|URL temporária autorizada| OS
 ```
 
-O objetivo não é prometer proteção absoluta, mas aumentar a dificuldade de extração e possibilitar a rastreabilidade dos acessos.
+| Camada | Tecnologias utilizadas |
+|---|---|
+| Frontend | React 19, TypeScript, Vite 8, React Router 7, Tailwind CSS 4, Lucide React e PDF.js |
+| Backend | Java 21, Spring Boot 4.1, Spring Web, Spring Security, Spring Data JPA e Maven Wrapper |
+| Dados | PostgreSQL 18, Flyway e Row-Level Security (RLS) |
+| Arquivos | Interface `ObjectStorage`, implementação local e implementação Firebase/Google Cloud Storage |
 
----
+O frontend usa a API em `http://localhost:8081` por padrão. O modo mock é controlado por `VITE_USE_MOCKS`; confira `frontend/.env.example`. A autenticação também pode ser simulada separadamente por `VITE_USE_MOCK_AUTH`.
 
-# 🏗️ Arquitetura
-
-A aplicação segue uma arquitetura organizada em camadas, separando responsabilidades entre frontend, backend e banco de dados.
-
-Fluxo principal:
-
-```text
-┌───────────────┐
-│    Frontend   │
-└───────┬───────┘
-        │
-        │ HTTP / REST
-        ↓
-┌───────────────┐
-│    Backend    │
-│  Spring Boot  │
-└───────┬───────┘
-        │
-        ↓
-┌───────────────┐
-│  PostgreSQL   │
-└───────────────┘
-```
-
-No backend, a estrutura segue o princípio:
+## Estrutura do repositório
 
 ```text
-Controller
-    ↓
-Service
-    ↓
-Repository
-    ↓
-PostgreSQL
-```
-
-### Controller
-
-Responsável por receber as requisições HTTP e disponibilizar os endpoints da API.
-
-### Service
-
-Responsável pelas regras de negócio e pelo processamento das operações.
-
-### Repository
-
-Responsável pela comunicação com o banco de dados utilizando Spring Data JPA.
-
-### Model
-
-Contém as entidades que representam os principais objetos do sistema.
-
-### DTO
-
-Responsável pela transferência de dados entre as diferentes camadas da aplicação, evitando que as entidades sejam necessariamente expostas diretamente pela API.
-
-### Exception
-
-Centraliza exceções e tratamentos de erros da aplicação.
-
-### Config
-
-Concentra configurações técnicas do sistema, como segurança, CORS e outros componentes necessários.
-
----
-
-# 🗂️ Estrutura do projeto
-
-A estrutura geral do repositório está organizada da seguinte maneira:
-
-```text
-projeto/
-│
+.
+├── AGENTS.md                       # orientações permanentes para agentes de programação
 ├── backend/
-│   ├── src/
-│   │   └── main/
-│   │       ├── java/
-│   │       │   └── com/
-│   │       │       └── .../
-│   │       │           ├── config/
-│   │       │           ├── controller/
-│   │       │           ├── dto/
-│   │       │           ├── exception/
-│   │       │           ├── model/
-│   │       │           ├── repository/
-│   │       │           └── service/
-│   │       │
-│   │       └── resources/
-│   │
-│   └── pom.xml
-│
+│   ├── compose.yaml                # PostgreSQL e backend em Docker Compose
+│   ├── docs/                       # instruções específicas do armazenamento Firebase
+│   └── ideiaspace/
+│       ├── src/main/java/          # aplicação Spring Boot
+│       ├── src/main/resources/     # configuração e migrations Flyway
+│       ├── src/test/               # testes unitários e de integração
+│       └── pom.xml
+├── docs/                           # banco, custos e entregas acadêmicas
 ├── frontend/
-│   ├── src/
-│   ├── public/
-│   └── ...
-│
-├── database/
-│   ├── scripts/
-│   └── README.md
-│
-├── docs/
-│   ├── architecture/
-│   ├── diagrams/
-│   └── decisions/
-│
-├── .gitignore
+│   ├── docs/                       # contrato da API e matriz de requisitos
+│   ├── public/                     # recursos estáticos e materiais de demonstração
+│   ├── src/                        # interface, serviços e testes dos adapters
+│   ├── package.json
+│   └── vite.config.ts
+├── GUIA-INICIO-IDEIA-SPACE.md      # guia operacional detalhado
 └── README.md
 ```
 
-A estrutura pode ser modificada conforme o projeto evoluir.
+## Pré-requisitos
 
----
+- Windows 10/11 com PowerShell.
+- Java 21 para executar o backend fora de Docker ou rodar os testes Maven.
+- Node.js `>=20.19` e npm (requisito definido em `frontend/package.json`).
+- Docker Desktop com Docker Compose v2 para executar banco e backend em containers.
+- Git para obter e atualizar o repositório.
 
-# 🧩 Modelo de dados
+Confira as ferramentas instaladas:
 
-A estrutura inicial do banco é baseada nos principais elementos acadêmicos da aplicação.
-
-Relacionamento conceitual:
-
-```text
-Disciplina
-    │
-    │ 1:N
-    ↓
-Turma
-    │
-    │ N:N
-    ↓
-TurmaUsuario
-    │
-    │ N:1
-    ↓
-Usuario
+```powershell
+git --version
+java -version
+node --version
+npm --version
+docker --version
+docker compose version
 ```
 
-Os conteúdos são associados às turmas:
+## Executar localmente no Windows
 
-```text
-Turma
-   │
-   │ 1:N
-   ↓
-Conteudo
+### 1. Obter o repositório
+
+Se ainda não tiver uma cópia local, use o endereço Git fornecido pela equipe:
+
+```powershell
+git clone <URL_DO_REPOSITORIO> IdeiaSpace
+Set-Location .\IdeiaSpace
 ```
 
-E os acessos aos conteúdos são registrados:
+Se já está no repositório, siga para o próximo passo.
 
-```text
-Usuario ───────┐
-               │
-               ↓
-           LogAcesso
-               ↑
-               │
-Conteudo ──────┘
+### 2. Configurar e iniciar PostgreSQL e backend
+
+O arquivo de configuração do Compose fica em `backend/`. Crie o arquivo local a partir do modelo apenas se ainda não existir, preencha-o localmente e não o versione:
+
+```powershell
+Set-Location .\backend
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+notepad .env
+docker compose up -d --build
+docker compose ps
 ```
 
-### Principais entidades
+O Compose publica PostgreSQL em `localhost:5434` e a API em `http://localhost:8081`. As migrations Flyway são executadas no início do backend. O armazenamento local de uploads usa o volume Docker `uploads_data`; os dados do PostgreSQL ficam em `postgres_data`. `docker compose down` para os serviços sem remover esses volumes.
 
-#### Usuario
+Variáveis obrigatórias do Compose, sem valores secretos:
 
-Representa uma pessoa cadastrada na plataforma.
+| Variável | Uso |
+|---|---|
+| `POSTGRES_PASSWORD` | Senha do usuário de administração do PostgreSQL usada pelo Compose e Flyway |
+| `APP_BACKEND_DB_PASSWORD` | Senha da role restrita `app_backend` usada pelo backend |
+| `APP_JWT_SECRET` | Assinatura dos tokens JWT |
+| `APP_CPF_KEY` | Chave exigida pela configuração de segurança |
+| `APP_CPF_HMAC_KEY` | Chave HMAC exigida pela configuração de segurança |
 
-Exemplos de informações:
+O modelo também documenta variáveis opcionais para limites de upload, CORS, tempo de vida do token, armazenamento e criação inicial de administrador. O bootstrap de administrador só é usado quando configurado e ainda não existe um administrador. Para execução fora do Compose, configure as variáveis correspondentes no ambiente do processo ou na IDE; o Spring/Maven não carrega automaticamente `backend/.env`.
 
-* identificador;
-* nome;
-* e-mail;
-* CPF;
-* senha armazenada de forma segura;
-* perfil;
-* status;
-* data de cadastro.
+### 3. Iniciar o frontend
 
-#### Disciplina
+Em outro terminal PowerShell, a partir da raiz:
 
-Representa uma disciplina acadêmica.
-
-Exemplos:
-
-* código;
-* nome;
-* descrição.
-
-#### Turma
-
-Representa uma turma vinculada a uma disciplina.
-
-Exemplos:
-
-* disciplina;
-* nome;
-* semestre/ano.
-
-#### TurmaUsuario
-
-Representa o vínculo entre um usuário e uma turma.
-
-Além do vínculo, armazena o papel exercido pelo usuário naquela turma.
-
-Possíveis papéis:
-
-```text
-DOCENTE
-DISCENTE
+```powershell
+Set-Location .\frontend
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+npm ci
+npm run dev
 ```
 
-Essa entidade é diferente do perfil geral do usuário.
+O Vite disponibiliza a interface em `http://localhost:5173`. O `.env.example` define a URL da API e os limites de validação de experiência do usuário. Os limites efetivos de upload são impostos pelo backend.
 
-Por exemplo, o perfil pode indicar que determinada pessoa possui uma conta de aluno, enquanto o vínculo com uma turma determina seu papel naquela turma.
+### 4. Verificar os serviços
 
-#### Conteudo
+```powershell
+# Backend/API: a rota exige autenticação; uma resposta HTTP confirma que a API atende.
+curl.exe -i http://localhost:8081/api/v1/conteudos
 
-Representa um material acadêmico disponibilizado na plataforma.
-
-Tipos previstos:
-
-```text
-PDF_LIVRO
-PDF_APOSTILA
-VIDEO_AULA
+# Estado dos containers e PostgreSQL
+docker compose ps
+docker compose exec db pg_isready -U postgres -d ideiaspace
 ```
 
-O banco não precisa armazenar necessariamente o arquivo físico. A proposta é manter os metadados e uma referência para o local de armazenamento.
+A rota de conteúdos requer token; sem token é esperado `401`. Para configurar o primeiro administrador ou cadastrar dados acadêmicos, siga o [guia de início](GUIA-INICIO-IDEIA-SPACE.md).
 
-#### LogAcesso
+## Armazenamento de arquivos
 
-Registra ações relacionadas ao acesso aos conteúdos.
+### Local
 
-Exemplos:
+É o provedor padrão para desenvolvimento e testes (`APP_STORAGE_PROVIDER=local`). Os arquivos são gravados fora de conteúdo estático, em armazenamento privado. No Compose, o volume `uploads_data` mantém os arquivos entre reinicializações e recriações dos containers. Não requer credenciais Firebase.
 
-```text
-ABRIU_PDF
-ASSISTIU_VIDEO
-TENTATIVA_PRINT_DETECTADA
+### Firebase Storage / Cloud Storage
+
+O backend contém um provedor Firebase, responsável por validar, enviar e remover objetos, além de emitir URLs temporárias assinadas depois de autorizar o acesso. As credenciais não são entregues ao frontend. A integração real não foi validada contra um bucket.
+
+O projeto Firebase identificado pela equipe é `ideia-sapce`. O projeto está no plano Spark; o acesso real ao Cloud Storage depende da migração para Blaze e da configuração de um bucket e uma credencial de serviço. A equipe deve confirmar o ID no Console. Consulte o [guia oficial de configuração Firebase do repositório](backend/docs/FIREBASE_SETUP.md) antes de habilitar o provedor. O documento [FIREBASE_CUSTOS.md](docs/FIREBASE_CUSTOS.md) contém estimativas preliminares, não uma cotação vigente.
+
+## Banco de dados e testes
+
+O banco de desenvolvimento é `ideiaspace`, PostgreSQL 18.6 no Compose. Flyway aplica as migrations versionadas automaticamente. RLS protege tabelas como usuários, turmas, vínculos, conteúdos e registros de acesso. A role da aplicação não deve ser `SUPERUSER` nem possuir `BYPASSRLS`; `app_owner` é usada pelas migrations e funções privilegiadas específicas.
+
+Para uma inspeção local do banco no container:
+
+```powershell
+Set-Location .\backend
+docker compose exec db psql -U postgres -d ideiaspace
 ```
 
-Também podem ser armazenadas informações como:
+O acesso administrativo acima é apenas para manutenção/inspeção local; a aplicação conecta como `app_backend`. O guia do [banco de dados e RLS](docs/README_DATABASE.md) descreve as migrations, as entidades e a preparação do banco de testes. Os testes de integração usam o banco isolado `ideiaspace_test`, não o banco de desenvolvimento. As propriedades de teste documentam as variáveis `SPRING_TEST_DATASOURCE_PASSWORD` e `SPRING_TEST_FLYWAY_PASSWORD`; configure-as no ambiente do Maven. Ajuste `SPRING_TEST_DATASOURCE_URL` se o PostgreSQL estiver publicado em outra porta.
 
-* usuário;
-* conteúdo;
-* IP;
-* navegador/dispositivo;
-* data e hora.
+### Testes do backend
 
----
+Execute a partir de `backend/ideiaspace/`:
 
-# 🔐 Arquitetura de proteção dos conteúdos
-
-A proteção dos conteúdos é um dos principais aspectos do projeto.
-
-## Princípio básico
-
-Os arquivos originais não devem ficar disponíveis por URLs públicas.
-
-Em vez disso:
-
-```text
-Usuário
-   ↓
-Frontend
-   ↓
-Backend
-   ↓
-Verificação de autorização
-   ↓
-Conteúdo liberado temporariamente
-   ↓
-Visualizador / Player
+```powershell
+.\mvnw.cmd -DskipTests compile
+.\mvnw.cmd test
+.\mvnw.cmd clean test
 ```
 
-O backend deve verificar se o usuário possui permissão para acessar determinado conteúdo antes de disponibilizá-lo.
+O primeiro comando compila sem executar testes; os dois últimos executam a suíte. Os testes de integração precisam do PostgreSQL de testes configurado e disponível.
 
----
+### Verificações do frontend
 
-## 📄 Proteção de PDFs
+Execute a partir de `frontend/`:
 
-A visualização dos PDFs poderá utilizar PDF.js.
-
-Fluxo:
-
-```text
-Usuário
-   ↓
-Solicita conteúdo
-   ↓
-Backend verifica autorização
-   ↓
-Acesso autorizado
-   ↓
-PDF disponibilizado para visualização
-   ↓
-PDF.js renderiza o documento
+```powershell
+npm ci
+npm run typecheck
+npm run build
 ```
 
-Camadas adicionais:
+Os adapters também têm testes automatizados. `npm run test:integration` exercita chamadas HTTP contra o backend e exige uma API e dados de integração preparados em ambiente de teste; não use dados de produção. `npm run test:content` inicia um servidor HTTP local simulado e não substitui os testes com backend real. Os scripts npm encerram removendo diretórios com `rm -rf`; em PowerShell do Windows, execute as etapas equivalentes diretamente:
 
-* marca d'água;
-* restrição de acesso direto ao arquivo original;
-* controle de permissões;
-* registros de acesso;
-* mecanismos para dificultar cópia;
-* bloqueios de determinadas ações no frontend.
+```powershell
+# Teste local do adapter de visualização
+npx vite build --ssr src/tests/test-content-access.ts --outDir dist/test-content
+if ($LASTEXITCODE -ne 0) { throw "Falha na compilação do teste de conteúdo" }
+node dist/test-content/test-content-access.js
+if ($LASTEXITCODE -ne 0) { throw "Falha no teste do adapter de conteúdo" }
+Remove-Item -LiteralPath dist/test-content -Recurse -Force
 
-> Essas medidas dificultam a extração, mas não tornam tecnicamente impossível capturar o conteúdo.
-
----
-
-## 🎥 Proteção de videoaulas
-
-As videoaulas poderão utilizar HLS para transmissão segmentada.
-
-Fluxo:
-
-```text
-Vídeo original
-      ↓
-Processamento
-      ↓
-HLS
-      ↓
-Playlist
-      ↓
-Segmentos
-      ↓
-Player
+# Integração HTTP com backend e contas preparadas
+npx vite build --ssr src/tests/test-materials-e2e.ts --outDir dist/test
+if ($LASTEXITCODE -ne 0) { throw "Falha na compilação do teste de integração" }
+node dist/test/test-materials-e2e.js
+if ($LASTEXITCODE -ne 0) { throw "Falha no teste de integração com backend" }
+Remove-Item -LiteralPath dist/test -Recurse -Force
 ```
 
-O acesso aos arquivos de vídeo deve ser controlado pelo backend e, em uma evolução da infraestrutura, poderá utilizar mecanismos como URLs ou cookies assinados e temporários.
-
----
-
-## 🏷️ Marca d'água
-
-Os conteúdos poderão apresentar informações do usuário durante a visualização.
-
-Exemplo:
-
-```text
-Nome do usuário
-E-mail
-Identificador
-Data/hora
-```
-
-A marca d'água possui duas funções principais:
-
-1. dificultar o compartilhamento não autorizado;
-2. permitir a identificação do usuário caso uma captura do conteúdo seja compartilhada.
-
----
-
-# 📊 Rastreabilidade
-
-O sistema deverá registrar o acesso aos conteúdos.
-
-Exemplo:
-
-```text
-Usuário: usuário autorizado
-Conteúdo: Apostila de Banco de Dados
-Ação: ABRIU_PDF
-Data/Hora: 30/09/2026 10:43
-```
-
-Esses registros permitem acompanhar o uso dos materiais e podem auxiliar na investigação de acessos indevidos.
-
----
-
-# 🛠️ Tecnologias
-
-## Backend
-
-* Java
-* Spring Boot
-* Spring Web
-* Spring Data JPA
-* Hibernate
-* Maven
-
-## Frontend
-
-* HTML
-* CSS
-* JavaScript
-* React, quando aplicável à implementação
-
-## Banco de dados
-
-* PostgreSQL
-
-## Conteúdo
-
-* PDF.js para visualização de documentos
-* HLS para transmissão de videoaulas
-
-## Versionamento
-
-* Git
-* GitHub
-
-## Documentação
-
-* Markdown
-* Mermaid
-* Diagramas de arquitetura e banco de dados
-
----
-
-# 🔄 Fluxo de uma requisição
-
-Um exemplo de funcionamento da aplicação:
-
-```text
-1. Usuário acessa o frontend
-            ↓
-2. Frontend envia uma requisição HTTP
-            ↓
-3. Controller recebe a requisição
-            ↓
-4. Service aplica as regras de negócio
-            ↓
-5. Repository consulta o banco
-            ↓
-6. PostgreSQL retorna os dados
-            ↓
-7. Service processa os dados
-            ↓
-8. Controller retorna a resposta
-            ↓
-9. Frontend apresenta o resultado
-```
-
----
-
-# 🧪 Testes
-
-O projeto deverá possuir testes para verificar o funcionamento das principais partes da aplicação.
-
-Entre os testes previstos:
-
-* testes das entidades;
-* testes dos repositories;
-* testes dos services;
-* testes dos controllers;
-* testes dos endpoints;
-* testes de integração;
-* testes de autorização;
-* testes relacionados ao acesso aos conteúdos.
-
----
-
-# 🌿 Git e fluxo de desenvolvimento
-
-O projeto utiliza Git para controle de versão.
-
-Recomenda-se trabalhar com branches separadas para cada funcionalidade ou tarefa:
-
-```text
-main
- │
- ├── feature/frontend-aluno
- ├── feature/backend-turmas
- ├── feature/database-estrutura
- └── feature/documentacao-arquitetura
-```
-
-Após a implementação:
-
-```text
-Branch
-   ↓
-Commit
-   ↓
-Push
-   ↓
-Pull Request
-   ↓
-Code Review
-   ↓
-Merge
-```
-
----
-
-# 📋 Organização do desenvolvimento
-
-O projeto utiliza uma abordagem baseada em Sprints.
-
-O planejamento geral é separado do acompanhamento detalhado das tarefas.
-
-### Scrum
-
-Utilizado para acompanhar:
-
-* Product Backlog;
-* Sprints;
-* objetivos das Sprints;
-* andamento geral do projeto;
-* retrospectivas.
-
-### Kanban
-
-Utilizado para acompanhar as tarefas dentro de cada Sprint:
-
-```text
-Backlog
-   ↓
-A Fazer
-   ↓
-Em Desenvolvimento
-   ↓
-Revisão / Code Review
-   ↓
-Em Teste
-   ↓
-Concluído
-```
-
----
-
-# 📦 Product Backlog
-
-As principais áreas funcionais do sistema são:
-
-* **PB01 — Gestão de usuários**
-* **PB02 — Autenticação e acesso**
-* **PB03 — Organização acadêmica**
-* **PB04 — Gerenciamento de materiais**
-* **PB05 — Acesso aos materiais**
-* **PB06 — Visualização de documentos**
-* **PB07 — Disponibilização de videoaulas**
-* **PB08 — Proteção dos conteúdos**
-* **PB09 — Rastreabilidade e segurança**
-* **PB10 — Interface e experiência do usuário**
-
-Esses itens representam áreas de negócio do sistema e podem ser detalhados em tarefas técnicas durante as Sprints.
-
----
-
-# 🧭 Roadmap
-
-O desenvolvimento pode evoluir gradualmente:
-
-## Sprint 1 — Estrutura inicial
-
-* definição da arquitetura;
-* organização do repositório;
-* criação da estrutura inicial do backend;
-* definição inicial do banco;
-* protótipos das interfaces;
-* definição das responsabilidades;
-* configuração do ambiente de desenvolvimento.
-
-## Sprint 2 — Primeira integração
-
-* desenvolvimento das primeiras funcionalidades do backend;
-* implementação inicial do banco;
-* desenvolvimento das áreas principais do frontend;
-* criação dos primeiros endpoints;
-* integração:
-
-```text
-Frontend
-   ↓
-Backend
-   ↓
-PostgreSQL
-   ↓
-Backend
-   ↓
-Frontend
-```
-
-## Próximas Sprints
-
-Evolução progressiva de:
-
-* autenticação;
-* gerenciamento de usuários;
-* disciplinas;
-* turmas;
-* conteúdos;
-* visualização de PDFs;
-* videoaulas;
-* marca d'água;
-* proteção;
-* rastreabilidade;
-* testes;
-* refinamento da interface.
-
----
-
-# ⚠️ Limitações de segurança
-
-O projeto reconhece que **não é possível garantir proteção absoluta de um conteúdo exibido em um dispositivo controlado pelo usuário**.
-
-Mesmo com mecanismos de proteção, um usuário pode utilizar métodos externos para capturar o conteúdo.
-
-Por isso, a estratégia adotada é baseada em múltiplas camadas:
-
-```text
-Controle de acesso
-        +
-Arquivos privados
-        +
-Acesso temporário
-        +
-Visualização protegida
-        +
-Marca d'água
-        +
-Rastreabilidade
-        +
-Mecanismos de dificultação
-```
-
-O objetivo é aumentar a segurança do conteúdo sem apresentar mecanismos de proteção como uma garantia absoluta contra cópia.
-
----
-
-# 📄 Licença
-
-Este projeto é destinado a fins educacionais e de desenvolvimento.
-
-A definição da licença de distribuição deverá ser realizada de acordo com as necessidades e regras estabelecidas para o projeto.
-
----
-
-# 👥 Contribuição
-
-Para contribuir com o projeto:
-
-1. Crie uma branch para sua alteração.
-2. Desenvolva a funcionalidade.
-3. Faça commits pequenos e descritivos.
-4. Execute os testes disponíveis.
-5. Envie a branch para o repositório.
-6. Abra um Pull Request.
-7. Aguarde a revisão.
-8. Após aprovação, realize o merge conforme o fluxo definido pela equipe.
-
----
-
-# 📚 Documentação
-
-A documentação complementar do projeto está localizada no diretório:
-
-```text
-docs/
-```
-
-Esse diretório poderá conter:
-
-* diagramas;
-* arquitetura;
-* modelo de banco;
-* decisões técnicas;
-* documentação de segurança;
-* documentação de APIs;
-* registros das Sprints.
-
----
-
-# 🚧 Status
-
-**Em desenvolvimento.**
-
-O sistema está sendo desenvolvido de forma incremental, priorizando inicialmente a construção da arquitetura e a integração entre frontend, backend e banco de dados antes da implementação das funcionalidades mais avançadas de proteção de conteúdo.
-
+### Resultados registrados
+
+- **Backend automatizado:** os relatórios Surefire atualmente presentes no workspace registram 168 testes aprovados, 0 falhas, 0 erros e 0 ignorados, em 17 suítes. Os relatórios foram atualizados em 17/11/2026 entre 15:23:11 e 15:23:21 (horário local). Esta revisão documental não repetiu a suíte.
+- **Frontend:** a última informação registrada nesta sessão antes desta revisão foi de TypeScript, build e adapter de visualização aprovados; não foram repetidos nesta alteração documental.
+- **Armazenamento local:** coberto por testes automatizados unitários e de integração do provedor local.
+- **Firebase real:** não testado contra bucket real; os testes Firebase existentes usam armazenamento simulado.
+- **Testes manuais:** não foram executados nesta revisão documental.
+
+## Documentação complementar
+
+| Documento | Conteúdo |
+|---|---|
+| [Guia de início](GUIA-INICIO-IDEIA-SPACE.md) | Configuração operacional, primeiro administrador e fluxo de uso |
+| [Banco de dados](docs/README_DATABASE.md) | PostgreSQL, migrations, RLS, entidades e ambiente de testes |
+| [Firebase Storage](backend/docs/FIREBASE_SETUP.md) | Configuração de credenciais, bucket privado, CORS e validação futura |
+| [Contrato de integração da API](frontend/docs/API_CONTRACT.md) | Endpoints implementados e propostas ainda em avaliação |
+| [Requisitos do frontend](frontend/docs/REQUISITOS_E_INCONSISTENCIAS.md) | Matriz de requisitos e decisões de implementação |
+| [Relatório da Fase 0](backend/FASE0_RELATORIO.md) | Registro histórico da revisão inicial de segurança |
+| [Estudo preliminar de custos](docs/FIREBASE_CUSTOS.md) | Estimativas históricas; confirmar preços e condições atuais antes de decisões financeiras |
+| [Proposta de arquitetura de banco e segurança](docs/Proposta_Arquitetura_Banco_Dados_Seguranca_Midias.pdf) | Documento acadêmico de proposta |
+| [Relatório de implementação V2.1](docs/Relatorio_Implementacao_V2_1.pdf) | Registro acadêmico da camada de banco e segurança |
+| [Visualização e proteção](<docs/Grupo 4_ Visualização e Proteção.pdf>) | Documento de requisitos acadêmicos sobre visualização |
+| [Documentação do protótipo Figma](docs/Documentacao_do_Projeto_Figma.pdf) | Registro do protótipo visual |
+
+## Contexto acadêmico
+
+Os documentos acadêmicos identificam o projeto como parte da Residência Acadêmica do Porto Digital, Squad 22, em parceria com a Ideia Space Educação Espacial. O relatório técnico identifica Victor Emanoel e André Luiz como responsáveis pela camada de banco de dados; essa atribuição não representa a lista completa da equipe do projeto.

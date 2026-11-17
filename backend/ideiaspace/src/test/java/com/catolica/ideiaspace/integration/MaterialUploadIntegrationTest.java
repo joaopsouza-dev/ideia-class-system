@@ -319,6 +319,11 @@ class MaterialUploadIntegrationTest {
                         .header("Authorization", bearer(docenteToken))
                         .param("turmaId", "999999").param("titulo", "Titulo ok").param("tipoMaterial", "PDF_LIVRO"))
                 .andExpect(status().isNotFound());
+        mockMvc.perform(multipart("/api/v1/conteudos").file(arquivo("a.pdf", "application/pdf", PDF_V1))
+                        .header("Authorization", bearer(adminToken))
+                        .param("turmaId", "999999").param("professorId", String.valueOf(docenteId))
+                        .param("titulo", "Titulo ok").param("tipoMaterial", "PDF_LIVRO"))
+                .andExpect(status().isNotFound());
     }
 
     @Test

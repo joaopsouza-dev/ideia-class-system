@@ -1,7 +1,13 @@
 import { config } from "./config";
 import type { Services } from "./contracts";
 import { mockServices } from "./mock";
-import { httpAuthService, httpAcademicService, httpMaterialService, httpAccessLogService } from "./http";
+import {
+  httpAuthService,
+  httpAcademicService,
+  httpMaterialService,
+  httpContentAccessService,
+  httpAccessLogService,
+} from "./http";
 
 export const services: Services = {
   // AuthService real integrado via HTTP ao backend Spring Boot
@@ -10,9 +16,9 @@ export const services: Services = {
   academic: httpAcademicService,
   // MaterialService real: conteúdos da biblioteca integrados via backend Spring Boot
   materials: httpMaterialService,
-  // Demais serviços mantidos temporariamente em mock até suas respectivas etapas de integração
-  content: mockServices.content,
-  // Auditoria real: lê log_acesso no backend (sem dados simulados)
+  // Visualização protegida real: URL temporária assinada emitida pelo backend (GET /conteudos/{id}/acesso)
+  content: httpContentAccessService,
+  // Auditoria real: lê log_acesso e registra tentativas no backend (sem dados simulados)
   accessLog: httpAccessLogService,
 };
 

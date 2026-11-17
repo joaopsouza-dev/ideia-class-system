@@ -45,6 +45,9 @@ public class SecurityConfig {
                 // Fase 0: provisionamento exige autenticação com perfil ADMIN (verificado pelo backend).
                 .requestMatchers("/api/v1/auth/provision").hasRole("ADMIN")
                 .requestMatchers("/api/v1/auth/**").permitAll()
+                // URLs temporárias do provedor local: a autorização é a assinatura HMAC + expiração
+                // na própria URL (LocalStorageController). Inexistente com APP_STORAGE_PROVIDER=firebase.
+                .requestMatchers("/api/v1/storage-local/arquivo").permitAll()
                 .requestMatchers("/error").permitAll()
                 .anyRequest().authenticated()
             )

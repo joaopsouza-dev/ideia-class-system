@@ -1,6 +1,6 @@
-# Contratos de integração com o backend (PROPOSTA)
+# Contrato de integração frontend e propostas de API
 
-> Nenhum endpoint abaixo existe ainda. Este documento descreve **o que o frontend precisa**, para a equipe de backend validar ou ajustar. As interfaces TypeScript correspondentes estão em `src/services/contracts.ts` e os tipos em `src/types/index.ts`.
+> Este arquivo reúne a proposta inicial de endpoints e o contrato real documentado na seção final. A tabela inicial é histórica e não representa endpoints existentes. O backend atual usa `/api/v1`; confira o contrato implementado e `backend/ideiaspace/src/main/java/com/catolica/ideiaspace/controller/` antes de integrar uma nova operação. As interfaces TypeScript correspondentes estão em `src/services/contracts.ts` e os tipos em `src/types/index.ts`.
 
 ## Como trocar o mock pela API
 1. Crie adapters HTTP que implementem `Services` (`src/services/contracts.ts`).
@@ -39,3 +39,22 @@
 - **Histórico "continuar de onde parou":** hoje em `localStorage` (por dispositivo). Se desejado por usuário: `PUT /api/conteudos/{uuid}/progresso`.
 - **Limites de upload:** `VITE_MAX_PDF_MB` / `VITE_MAX_VIDEO_MB` são provisórios; definir os reais.
 - **Tipos de ação do log:** alinhar a enumeração `TipoAcao`.
+
+---
+
+## Atualização: endpoints de visualização implementados no backend (`/api/v1`)
+
+Os caminhos acima são a proposta original. O backend real usa o prefixo `/api/v1` e, para a
+visualização protegida e a auditoria, expõe:
+
+| Operação | Endpoint | Resposta |
+|---|---|---|
+| `content.getViewerSource` | `GET /api/v1/conteudos/{id}/acesso` | `200 { url, expiraEm, tipo: "PDF"\|"VIDEO", mimeType }`; `404` para rascunho, outra turma ou inexistente (sem distinção) |
+| `accessLog.record` | `POST /api/v1/conteudos/{id}/eventos` | `204`; corpo `{ acao: "TENTATIVA_DOWNLOAD" \| "TENTATIVA_PRINT_DETECTADA", detalhe? }` |
+| `accessLog.list` | `GET /api/v1/auditoria` | Somente ADMIN |
+
+Regras: `ABRIU_PDF`/`INICIOU_VIDEO`/`TENTATIVA_ACESSO_NEGADO` são gravados pelo servidor ao emitir
+(ou negar) a URL, com IP e User-Agent da própria requisição; o cliente só pode relatar
+`TENTATIVA_DOWNLOAD` e `TENTATIVA_PRINT_DETECTADA` (captura/impressão do frontend mapeiam para a
+segunda, com o tipo original no `detalhe`). `COPIA`, `PERDA_DE_FOCO` e `MARCA_DAGUA_ALTERADA` não
+são persistidos (não existem no enum do banco).

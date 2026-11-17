@@ -28,6 +28,10 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+		<!-- Cliente oficial do Google Cloud Storage (Firebase Storage usa buckets do GCS).
+		     Versão fixada porque o Spring Boot não a gerencia. Ao atualizar, confira
+		     `mvn dependency:tree` por conflitos com gson/guava/protobuf. -->
+		<google-cloud-storage.version>2.43.1</google-cloud-storage.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -90,6 +94,13 @@
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
+		</dependency>
+
+		<!-- Firebase Storage / Google Cloud Storage: armazenamento privado e Signed URLs V4 -->
+		<dependency>
+			<groupId>com.google.cloud</groupId>
+			<artifactId>google-cloud-storage</artifactId>
+			<version>${google-cloud-storage.version}</version>
 		</dependency>
 	</dependencies>
 

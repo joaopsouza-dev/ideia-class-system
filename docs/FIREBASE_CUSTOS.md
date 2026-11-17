@@ -1,4 +1,7 @@
 # Estudo de Custos e Planos do Firebase
+
+> **Nota de validade:** este estudo contém estimativas preliminares, preços e limites que podem mudar e não devem ser usados como cotação nem como decisão financeira atual. O projeto usa JWT próprio, não Firebase Authentication. Conforme o estado informado pela equipe, o projeto Firebase está no plano Spark e o uso real do Cloud Storage depende da atualização para Blaze. A integração com bucket real ainda não foi validada. Consulte `backend/docs/FIREBASE_SETUP.md` para o procedimento técnico e confirme as condições no Console antes de habilitar o serviço.
+
 **Ideia Space — Repositório Digital Protegido | Squad 22**  
 **Referência:** Firebase Pricing (outubro/2026) — firebase.google.com/pricing
 

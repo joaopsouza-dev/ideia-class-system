@@ -2,11 +2,15 @@ package com.catolica.ideiaspace.controller;
 
 import com.catolica.ideiaspace.domain.enums.StatusPublicacao;
 import com.catolica.ideiaspace.domain.enums.TipoMaterial;
+import com.catolica.ideiaspace.dto.conteudo.AcessoConteudoResponseDTO;
 import com.catolica.ideiaspace.dto.conteudo.ConteudoResponseDTO;
 import com.catolica.ideiaspace.dto.conteudo.ConteudoStatusDTO;
+import com.catolica.ideiaspace.dto.conteudo.EventoAcessoRequestDTO;
+import com.catolica.ideiaspace.service.ClienteRequisicao;
 import com.catolica.ideiaspace.service.ConteudoService;
+import com.catolica.ideiaspace.service.VisualizacaoService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ContentDisposition;
@@ -24,9 +28,11 @@ import java.util.List;
 public class ConteudoController {
 
     private final ConteudoService conteudoService;
+    private final VisualizacaoService visualizacaoService;
 
-    public ConteudoController(ConteudoService conteudoService) {
+    public ConteudoController(ConteudoService conteudoService, VisualizacaoService visualizacaoService) {
         this.conteudoService = conteudoService;
+        this.visualizacaoService = visualizacaoService;
     }
 
     @GetMapping
@@ -90,7 +96,7 @@ public class ConteudoController {
     @GetMapping("/{id}/arquivo")
     public ResponseEntity<Resource> arquivo(@PathVariable Long id) {
         ConteudoService.ArquivoConteudo arquivo = conteudoService.obterArquivo(id);
-        Resource recurso = new FileSystemResource(arquivo.caminho());
+        Resource recurso = arquivo.recurso();
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(arquivo.mimeType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION,
@@ -98,5 +104,32 @@ public class ConteudoController {
                 .header("X-Content-Type-Options", "nosniff")
                 .cacheControl(CacheControl.noStore().cachePrivate())
                 .body(recurso);
+    }
+
+    /**
+     * Visualização protegida: devolve uma URL TEMPORÁRIA assinada (e a expiração) para o usuário
+     * que tem acesso ao material (aluno: publicado e da própria turma; docente autor; admin).
+     * Registra ABRIU_PDF / INICIOU_VIDEO no servidor, com IP e User-Agent da própria requisição.
+     * Sem permissão (ou material inexistente): 404.
+     */
+    @GetMapping("/{id}/acesso")
+    public ResponseEntity<AcessoConteudoResponseDTO> acesso(@PathVariable Long id, HttpServletRequest request) {
+        AcessoConteudoResponseDTO acesso = visualizacaoService.abrir(id, ClienteRequisicao.de(request));
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore().cachePrivate())
+                .body(acesso);
+    }
+
+    /**
+     * Tentativas detectadas pelo navegador (download, impressão/captura). Lista fechada de ações;
+     * abertura e acesso negado são registrados apenas pelo servidor.
+     */
+    @PostMapping("/{id}/eventos")
+    public ResponseEntity<Void> registrarEvento(
+            @PathVariable Long id,
+            @Valid @RequestBody EventoAcessoRequestDTO dto,
+            HttpServletRequest request) {
+        visualizacaoService.registrarEvento(id, dto.acao(), dto.detalhe(), ClienteRequisicao.de(request));
+        return ResponseEntity.noContent().build();
     }
 }

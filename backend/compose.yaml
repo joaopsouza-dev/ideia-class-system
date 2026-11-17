@@ -63,6 +63,17 @@ services:
       APP_UPLOAD_MAX_VIDEO_MB: ${APP_UPLOAD_MAX_VIDEO_MB:-500}
       APP_UPLOAD_MAX_REQUEST_MB: ${APP_UPLOAD_MAX_REQUEST_MB:-512}
 
+      # Provedor de armazenamento: "local" (volume acima; demonstração/desenvolvimento) ou
+      # "firebase" (Cloud Storage for Firebase; exige bucket e credencial de serviço).
+      APP_STORAGE_PROVIDER: ${APP_STORAGE_PROVIDER:-local}
+      APP_STORAGE_SIGNED_URL_TTL_SECONDS: ${APP_STORAGE_SIGNED_URL_TTL_SECONDS:-900}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
+      # Nome EXATO do bucket, como aparece no Firebase Console (não é inventado aqui).
+      FIREBASE_STORAGE_BUCKET: ${FIREBASE_STORAGE_BUCKET:-}
+      # Caminho DENTRO do container; o arquivo real é montado somente-leitura (veja "volumes").
+      # Com APP_STORAGE_PROVIDER=local esta variável não é usada.
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/firebase-credentials.json
+
       # Bootstrap do primeiro administrador: usado somente se o banco não tiver admin.
       APP_BOOTSTRAP_ADMIN_NAME: ${APP_BOOTSTRAP_ADMIN_NAME:-}
       APP_BOOTSTRAP_ADMIN_EMAIL: ${APP_BOOTSTRAP_ADMIN_EMAIL:-}
@@ -74,6 +85,10 @@ services:
     volumes:
       # Uploads persistem entre reinícios/recriações dos containers (docker compose down SEM -v).
       - uploads_data:/app/storage
+      # Credencial de serviço do Firebase (somente backend). Defina FIREBASE_CREDENTIALS_FILE
+      # no .env com o caminho LOCAL do arquivo JSON, que NUNCA deve ser versionado.
+      # Sem ela, monta /dev/null (adequado ao provedor "local").
+      - ${FIREBASE_CREDENTIALS_FILE:-/dev/null}:/run/secrets/firebase-credentials.json:ro
 
     depends_on:
       db:

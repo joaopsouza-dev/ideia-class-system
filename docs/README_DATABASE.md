@@ -1,272 +1,82 @@
-# README — Banco de Dados: Ideia Space v2.1
-**Repositório Digital Protegido | Squad 22 | Porto Digital**
+# Banco de dados e segurança — Ideia Space
 
----
+Esta página descreve a configuração atual do repositório. Para executar o projeto, comece pelo [README principal](../README.md); este documento cobre PostgreSQL, migrations, RLS e o banco de testes.
 
-## Índice
+## PostgreSQL no Docker Compose
 
-1. [Subindo o banco com Docker Compose](#1-subindo-o-banco-com-docker-compose)
-2. [Como funciona o RLS com app.current_user_id](#2-como-funciona-o-rls-com-appcurrent_user_id)
-3. [Fluxo de integração: PostgreSQL ↔ Firebase Storage ↔ Frontend](#3-fluxo-de-integração-postgresql--firebase-storage--frontend)
-4. [Checklist de validação da integração JPA](#4-checklist-de-validação-da-integração-jpa)
+O Compose está em `backend/compose.yaml`. O serviço `db` usa PostgreSQL 18.6 e publica a porta do container `5432` como `localhost:5434`. O banco de desenvolvimento chama-se `ideiaspace`.
 
----
-
-## 1. Subindo o banco com Docker Compose
-
-### Pré-requisitos
-
-- Docker Engine 24+ e Docker Compose v2+
-- Arquivos SQL na pasta `./sql/`:
-  - `01_schema.sql` — DDL completo (schema v2.1 com RLS e funções SECURITY DEFINER)
-  - `02_seed_dev.sql` — Dados de teste (apenas para dev)
-
-### Estrutura de pastas esperada
-
-```
-projeto/
-├── Dockerfile
-├── docker-compose.yml
-└── sql/
-    ├── 01_schema.sql
-    └── 02_seed_dev.sql
+```powershell
+Set-Location .\backend
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+notepad .env
+docker compose up -d db
+docker compose ps
+docker compose exec db pg_isready -U postgres -d ideiaspace
 ```
 
-### Comandos
+O modelo `.env.example` contém os nomes das variáveis exigidas; defina os valores localmente, sem os incluir em documentação, terminal compartilhado ou Git. O volume `postgres_data` preserva os dados entre reinícios. `docker compose down` para/remove os containers sem apagar o volume. Não use opções que removem volumes para manutenção comum.
 
-```bash
-# Primeira execução (cria volume e executa os scripts de init)
-docker compose up -d
+Para abrir um cliente PostgreSQL no container:
 
-# Ver logs de inicialização (útil para diagnosticar erros de SQL)
-docker compose logs -f ideiaspace_postgres
-
-# Subir também o pgAdmin (interface visual)
-docker compose --profile tools up -d
-
-# Parar sem apagar dados
-docker compose stop
-
-# Parar E apagar os dados (reset completo)
-docker compose down -v
+```powershell
+docker compose exec db psql -U postgres -d ideiaspace
 ```
 
-### Acessando o banco diretamente
-
-```bash
-# Via psql dentro do container
-docker exec -it ideiaspace_postgres psql -U ideiaspace_admin -d ideiaspace_db
-
-# Verificar se o seed foi carregado
-SELECT tabela, registros FROM (
-    SELECT 'usuario' AS tabela, COUNT(*) AS registros FROM usuario
-    UNION ALL SELECT 'conteudo', COUNT(*) FROM conteudo
-    UNION ALL SELECT 'log_acesso', COUNT(*) FROM log_acesso
-) t;
-```
-
-### Variáveis de ambiente (dev)
-
-| Variável | Valor padrão (dev) | Descrição |
-|---|---|---|
-| `POSTGRES_DB` | `ideiaspace_db` | Nome do banco |
-| `POSTGRES_USER` | `ideiaspace_admin` | Superusuário (só para migrações) |
-| `POSTGRES_PASSWORD` | `dev_password_local_apenas` | ⚠️ Trocar em staging/prod |
-
-> **Em produção:** use Docker Secrets ou variáveis de ambiente seguras — nunca credenciais em `docker-compose.yml`.
-
----
-
-## 2. Como funciona o RLS com app.current_user_id
-
-### Conceito
-
-Row-Level Security (RLS) é uma funcionalidade do PostgreSQL que filtra automaticamente as linhas que cada conexão pode ver ou modificar, baseado em políticas definidas na tabela. No Ideia Space, a identidade do usuário é passada para o banco via uma **variável de configuração de sessão/transação**:
+Comandos úteis no `psql`:
 
 ```sql
-SET LOCAL app.current_user_id = '42';
+\dt
+\d+ public.turma
+\df+ public.fn_criar_conteudo
+\df+ public.fn_turma_ativa_existe
 ```
 
-### Por que SET LOCAL e não SET?
+Uma sessão administrativa pode ver registros que RLS oculta de `app_backend`; ela serve para inspeção e manutenção, não representa o comportamento da aplicação.
 
-O Spring Boot usa um **pool de conexões** (HikariCP). Cada requisição HTTP reutiliza uma conexão do pool. Se usarmos `SET` (persistente na sessão), o `user_id` da requisição anterior "vaza" para a próxima requisição que pegar aquela conexão.
+## Migrations Flyway
 
-`SET LOCAL` limita a variável ao escopo da **transação atual** — ao fim do COMMIT ou ROLLBACK, a variável some automaticamente. Isso é seguro com pools de conexões.
+As migrations ficam em `backend/ideiaspace/src/main/resources/db/migration/` e são aplicadas pelo Flyway ao iniciar o backend, com usuário de migração próprio. O conjunto versionado vai de V1 a V7. A V7 adiciona `fn_turma_ativa_existe`, que retorna apenas um booleano e permite distinguir uma turma ativa inexistente de uma turma invisível pela RLS. Não altere migrations já aplicadas; mudanças de banco devem ser aditivas.
 
-```
-Requisição HTTP → Spring Filter → SET LOCAL user_id='42' → JPA Queries (filtradas pelo RLS) → COMMIT → user_id apagado automaticamente
-```
+A estrutura relacional principal é:
 
-### Como o Spring Boot injeta o user_id
-
-O `PostgresRLSInterceptor` (filtro Spring) faz isso automaticamente:
-
-```java
-// Executado antes de cada requisição autenticada
-jdbcTemplate.execute("SET LOCAL app.current_user_id = '" + userId + "'");
-```
-
-O banco então lê essa variável nas políticas RLS:
-
-```sql
--- Exemplo de política: aluno só vê conteúdo das suas turmas
-CREATE POLICY policy_select_conteudo ON conteudo FOR SELECT
-USING (
-    is_current_user_admin()
-    OR usuario_is_member_of_turma(current_app_user_id(), turma_id)
-);
-```
-
-### Configuração crítica no application.yml
-
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/ideiaspace_db
-    username: app_backend          # Role com NOBYPASSRLS (sujeita ao RLS)
-    password: ${DB_PASSWORD}
-    hikari:
-      auto-commit: false           # OBRIGATÓRIO: SET LOCAL só funciona dentro de transação
-      maximum-pool-size: 10
-      connection-timeout: 30000
-```
-
-> **Atenção:** `auto-commit: false` é obrigatório. Com auto-commit ativado, cada statement é uma transação separada e o `SET LOCAL` é descartado antes das queries JPA.
-
-### Testando o isolamento RLS manualmente
-
-```sql
--- Simula a role do backend (sujeita ao RLS)
-SET ROLE app_role;
-
--- Simula usuário 4 (aluno Maria — membro da Turma 1)
-SET LOCAL app.current_user_id = '4';
-SELECT id, titulo FROM conteudo;  -- deve retornar apenas conteúdo da Turma 1
-
--- Troca para usuário 5 (aluno João — NÃO está na Turma 2)
-SET LOCAL app.current_user_id = '5';
-SELECT id, titulo FROM conteudo WHERE turma_id = 2;  -- deve retornar 0 linhas
-
-RESET ROLE;
-```
-
----
-
-## 3. Fluxo de integração: PostgreSQL ↔ Firebase Storage ↔ Frontend
-
-### Premissas de segurança
-
-- O PostgreSQL armazena **apenas o caminho relativo** do arquivo no bucket (`caminho_storage`), nunca a URL pública.
-- O Firebase Storage bucket é configurado como **privado** (sem acesso público).
-- O backend gera **Signed URLs temporárias** (10 min por padrão) sob demanda — uma por requisição de acesso.
-- O frontend consome o arquivo via canvas (PDF) ou streaming (vídeo), com scripts que bloqueiam print/download.
-
-### Fluxo passo a passo
-
-```
-1. Aluno faz login → Spring Security valida credenciais → JWT emitido
-
-2. Aluno acessa GET /api/conteudo/{uuid_publico}
-   ├── PostgresRLSInterceptor: SET LOCAL app.current_user_id = '<id>'
-   ├── JPA: SELECT * FROM conteudo WHERE uuid_publico = ? AND removido_em IS NULL
-   │    └── RLS verifica: usuario_is_member_of_turma(aluno_id, turma_id) → TRUE
-   └── Retorna: { titulo, tipo_material, ... } (sem caminho_storage)
-
-3. Aluno acessa GET /api/conteudo/{uuid_publico}/signed-url
-   ├── Backend busca caminho_storage do conteúdo no banco
-   ├── FirebaseStorageService.gerarSignedUrl(caminho_storage, 10, MINUTES)
-   │    └── Google Cloud Storage API gera URL V4 assinada com service account
-   └── Retorna: { signedUrl: "https://storage.googleapis.com/bucket/...?X-Goog-Signature=..." }
-
-4. Frontend usa a signedUrl para:
-   ├── PDF: renderiza via PDF.js em <canvas> (não como <embed> — bloqueia copy/print)
-   └── Vídeo: stream via <video> com src=signedUrl (sem download attr)
-
-5. Evento de acesso é registrado:
-   INSERT INTO log_acesso (usuario_id, conteudo_id, tipo_acao, ip_origem, dispositivo, data_hora)
-   VALUES (...);
-   -- Trigger prevent_log_tampering torna o registro imutável
-
-6. Signed URL expira após 10 minutos → acesso ao Storage negado automaticamente
-```
-
-### Configuração do Firebase Admin SDK
-
-```yaml
-# application.yml
-firebase:
-  storage:
-    bucket-name: ideiaspace-seu-projeto.appspot.com
-    credentials-path: classpath:firebase/serviceAccountKey.json
-    signed-url-duration-minutes: 10
-```
-
-> O arquivo `serviceAccountKey.json` deve ser gerado em:
-> Firebase Console → Configurações do Projeto → Contas de Serviço → Gerar nova chave privada
-
-**⚠️ Nunca faça commit do `serviceAccountKey.json` no repositório Git.**  
-Adicione ao `.gitignore`: `src/main/resources/firebase/`
-
----
-
-## 4. Checklist de validação da integração JPA
-
-### 4.1 Banco de dados
-
-- [ ] `docker compose up -d` sobe sem erros
-- [ ] `docker compose logs ideiaspace_postgres` não mostra erros de SQL
-- [ ] Verificação de seed: todas as tabelas com registros esperados
-- [ ] `SELECT current_user;` dentro do container retorna `ideiaspace_admin`
-
-### 4.2 Spring Boot ↔ PostgreSQL
-
-- [ ] `application.yml` tem `auto-commit: false` no HikariCP
-- [ ] `datasource.username` é `app_role` (ou `app_backend`) — **não** o superuser
-- [ ] `PostgresRLSInterceptor` está anotado com `@Component` e visível no contexto Spring
-- [ ] Requisição autenticada: verificar no log `[RLS] app.current_user_id definido para userId=X`
-- [ ] Requisição não autenticada (ex.: `/api/auth/login`): sem erro de RLS
-
-### 4.3 Isolamento RLS por perfil
-
-| Cenário | Esperado |
+| Entidade/tabela | Responsabilidade |
 |---|---|
-| Aluno acessa `GET /conteudo` | Só retorna conteúdos das turmas em que está matriculado |
-| Aluno tenta acessar conteúdo de outra turma | 404 (RLS retorna 0 linhas) |
-| Professor acessa `GET /conteudo` | Retorna conteúdos de todas as turmas que leciona |
-| ADMIN acessa qualquer recurso | Acesso total (is_current_user_admin() retorna TRUE) |
-| Aluno inativo tenta logar | 401 (isEnabled() = false no UserDetails) |
+| `usuario` | Contas, perfil geral e estado da conta |
+| `disciplina` | Dados das disciplinas |
+| `turma` | Turmas de uma disciplina |
+| `turma_usuario` | Vínculo de usuário à turma e papel nela (`DOCENTE`/`DISCENTE`) |
+| `conteudo` | Metadados, status de publicação e referência privada ao arquivo |
+| `log_acesso` | Eventos de acesso e auditoria |
 
-### 4.4 Imutabilidade do log_acesso
+O PostgreSQL guarda metadados e caminho interno do objeto; os bytes ficam no provedor de armazenamento configurado. Consulte [Firebase Storage](../backend/docs/FIREBASE_SETUP.md) para a opção em nuvem.
 
-```sql
--- Este UPDATE deve falhar com exceção:
-UPDATE log_acesso SET tipo_acao = 'ABRIU_PDF' WHERE id = 1;
--- Esperado: ERROR: Operação negada: registros de auditoria em log_acesso são imutáveis.
+## Row-Level Security (RLS)
 
--- Este DELETE também deve falhar:
-DELETE FROM log_acesso WHERE id = 1;
--- Esperado: mesma mensagem de erro
+As políticas RLS limitam linhas de acordo com a identidade atual e as regras de negócio. A role runtime `app_backend` não deve ser superusuária e não deve possuir `BYPASSRLS`. As migrations são executadas com `app_owner`; funções específicas com `SECURITY DEFINER` têm `search_path` fixo, recebem permissões explícitas e retornam somente os dados necessários.
+
+O backend guarda o ID autenticado em contexto da requisição. O `RlsDataSource` aplica `set_config('app.current_user_id', ..., true)` na conexão dentro da transação, e o valor local desaparece ao terminar a transação. Isso evita deixar a identidade de uma requisição na conexão reutilizada pelo pool.
+
+A criação de conteúdo usa `fn_criar_conteudo`, que repete no banco a validação de autorização, inclusive o vínculo docente. A verificação booleana da V7 não substitui essa validação nem altera as políticas RLS.
+
+## Banco de testes
+
+Os testes de integração devem usar uma base isolada chamada `ideiaspace_test`, separada do banco de desenvolvimento. Crie-a no servidor PostgreSQL de teste, sem substituir nem limpar o banco `ideiaspace`. Flyway aplica as migrations ao banco de testes quando a suíte sobe.
+
+As propriedades em `backend/ideiaspace/src/test/resources/application.properties` definem:
+
+- URL padrão `jdbc:postgresql://localhost:5432/ideiaspace_test`;
+- usuário da aplicação `app_backend`;
+- usuário Flyway `postgres` por padrão;
+- senhas fornecidas pelo ambiente em `SPRING_TEST_DATASOURCE_PASSWORD` e `SPRING_TEST_FLYWAY_PASSWORD`.
+
+Se usar o PostgreSQL do Compose, a porta do host é `5434`; configure `SPRING_TEST_DATASOURCE_URL` como `jdbc:postgresql://localhost:5434/ideiaspace_test`. Defina as senhas no ambiente do processo PowerShell/IDE que inicia o Maven. O arquivo `.env` do Compose não é carregado automaticamente por `mvnw.cmd`.
+
+Execute a partir de `backend/ideiaspace/`:
+
+```powershell
+.\mvnw.cmd -DskipTests compile
+.\mvnw.cmd test
 ```
 
-### 4.5 Firebase Storage
-
-- [ ] `FirebaseStorageService` inicializa sem erro (verificar log `[Firebase] Storage inicializado`)
-- [ ] `GET /api/conteudo/{uuid}/signed-url` retorna URL válida (começa com `https://storage.googleapis.com/`)
-- [ ] URL expira após o tempo configurado (testar acesso após 10+ minutos)
-- [ ] URL de um conteúdo de turma diferente **não deve ser gerada** (RLS impediu o SELECT do caminho_storage)
-
-### 4.6 Soft delete
-
-```bash
-# Conteúdo removido não aparece nas listagens
-GET /api/conteudo → não retorna itens com removido_em IS NOT NULL
-
-# Mas o log ainda existe (integridade referencial preservada)
-SELECT COUNT(*) FROM log_acesso WHERE conteudo_id = <id_removido>;
--- Deve retornar > 0 (os acessos históricos estão preservados)
-```
-
----
-
-**Dúvidas ou problemas?** Abra uma issue no repositório do Squad 22 ou contate:  
-Victor Emanoel · André Luiz · Grupo 3 — Banco de Dados e Infraestrutura
+Os testes de integração criam e alteram dados de teste. Não aponte a configuração para o banco de desenvolvimento. Consulte o [README principal](../README.md#testes-do-backend) para os comandos completos.

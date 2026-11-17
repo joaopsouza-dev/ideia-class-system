@@ -12,9 +12,11 @@ import com.catolica.ideiaspace.repositories.TurmaRepository;
 import com.catolica.ideiaspace.repositories.TurmaUsuarioRepository;
 import com.catolica.ideiaspace.security.UserPrincipal;
 import com.catolica.ideiaspace.service.storage.ArquivoArmazenado;
-import com.catolica.ideiaspace.service.storage.FileStorageService;
+import com.catolica.ideiaspace.service.storage.ObjectStorage;
 import com.catolica.ideiaspace.service.storage.TipoArquivo;
 import jakarta.persistence.EntityManager;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,8 +27,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
@@ -50,7 +50,8 @@ public class ConteudoService {
     private final ConteudoRepository conteudoRepository;
     private final TurmaRepository turmaRepository;
     private final TurmaUsuarioRepository turmaUsuarioRepository;
-    private final FileStorageService storage;
+    private final JdbcTemplate jdbcTemplate;
+    private final ObjectStorage storage;
     private final EntityManager entityManager;
     private final TransactionTemplate tx;
     private final TransactionTemplate txLeitura;
@@ -59,17 +60,28 @@ public class ConteudoService {
             ConteudoRepository conteudoRepository,
             TurmaRepository turmaRepository,
             TurmaUsuarioRepository turmaUsuarioRepository,
-            FileStorageService storage,
+            JdbcTemplate jdbcTemplate,
+            ObjectStorage storage,
             EntityManager entityManager,
             PlatformTransactionManager transactionManager) {
         this.conteudoRepository = conteudoRepository;
         this.turmaRepository = turmaRepository;
         this.turmaUsuarioRepository = turmaUsuarioRepository;
+        this.jdbcTemplate = jdbcTemplate;
         this.storage = storage;
         this.entityManager = entityManager;
         this.tx = new TransactionTemplate(transactionManager);
         this.txLeitura = new TransactionTemplate(transactionManager);
         this.txLeitura.setReadOnly(true);
+    }
+
+    private void validarTurmaAtiva(Long turmaId) {
+        Boolean existe = jdbcTemplate.queryForObject(
+                "SELECT public.fn_turma_ativa_existe(?)", Boolean.class, turmaId);
+        if (!Boolean.TRUE.equals(existe)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "Turma ativa não encontrada com ID: " + turmaId);
+        }
     }
 
     // ------------------------------------------------------------------ cadastro
@@ -130,10 +142,7 @@ public class ConteudoService {
      * do banco usa o usuário da sessão nesse caso).
      */
     private Long autorizarCadastro(Long turmaId, Long professorId) {
-        turmaRepository.findByIdAndExcluidoEmIsNull(turmaId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Turma ativa não encontrada com ID: " + turmaId));
-
+        validarTurmaAtiva(turmaId);
         UserPrincipal usuario = usuarioAtual();
         if (isAdmin(usuario)) {
             if (professorId == null) {
@@ -177,8 +186,8 @@ public class ConteudoService {
         return ConteudoResponseDTO.fromEntity(buscarAtivo(id));
     }
 
-    /** Arquivo físico de um material, para leitura autenticada (autor ou administrador). */
-    public record ArquivoConteudo(Path caminho, String mimeType, long tamanhoBytes, String nomeSugerido) {}
+    /** Arquivo de um material, para leitura autenticada pelo backend (autor ou administrador). */
+    public record ArquivoConteudo(Resource recurso, String mimeType, long tamanhoBytes, String nomeSugerido) {}
 
     @Transactional(readOnly = true)
     public ArquivoConteudo obterArquivo(Long id) {
@@ -186,23 +195,24 @@ public class ConteudoService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O ID do conteúdo é obrigatório.");
         }
         Conteudo conteudo = buscarAtivo(id);
-        // Entrega do arquivo a alunos fica para o visualizador protegido (marca d'água, log, URL
-        // temporária). Aqui apenas quem gerencia o material pode conferir o arquivo.
+        // Entrega do arquivo a alunos NÃO passa por aqui: o visualizador protegido usa
+        // VisualizacaoService (URL temporária assinada + auditoria). Aqui apenas quem gerencia o
+        // material pode conferir o arquivo.
         verificarPermissaoDeGestao(conteudo);
 
-        Path caminho;
+        long tamanho = conteudo.getTamanhoBytes() != null ? conteudo.getTamanhoBytes() : 0L;
+        Resource recurso;
         try {
-            caminho = storage.resolver(conteudo.getStoragePath());
+            if (!storage.existe(conteudo.getStoragePath())) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Arquivo do material não encontrado.");
+            }
+            recurso = storage.abrir(conteudo.getStoragePath(), tamanho);
         } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Arquivo do material não encontrado.");
-        }
-        if (!Files.isRegularFile(caminho)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Arquivo do material não encontrado.");
         }
         String mime = conteudo.getMimeType();
         String extensao = "video/webm".equals(mime) ? "webm" : "video/mp4".equals(mime) ? "mp4" : "pdf";
-        return new ArquivoConteudo(caminho, mime, conteudo.getTamanhoBytes(),
-                "material-" + conteudo.getId() + "." + extensao);
+        return new ArquivoConteudo(recurso, mime, tamanho, "material-" + conteudo.getId() + "." + extensao);
     }
 
     // ------------------------------------------------------------------ edição

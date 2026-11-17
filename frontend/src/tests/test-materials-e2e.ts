@@ -5,6 +5,8 @@
 
 import { httpAuthService } from "../services/http/auth";
 import { httpMaterialService } from "../services/http/materials";
+import { httpContentAccessService } from "../services/http/content";
+import { httpAccessLogService } from "../services/http/accessLog";
 import { httpClient } from "../services/api";
 import { ApiError } from "../services/errors";
 import type { Sessao } from "../types";
@@ -191,6 +193,49 @@ async function run() {
   const novoArquivo = new File([new TextEncoder().encode("%PDF-1.4\nsubstituto maior\n%%EOF\n")], "n.pdf");
   const substituido = await httpMaterialService.update(docenteSessao, criado.id, { titulo: "Título editado E2E", descricao: "x", arquivo: novoArquivo });
   assert(substituido.tamanhoBytes !== criado.tamanhoBytes, "Substituição de arquivo atualiza o tamanho");
+
+  // -------------------------------------------------------------------------
+  // 8. Visualização protegida (URL temporária) e auditoria
+  // -------------------------------------------------------------------------
+  console.log("\n8. Visualização protegida e auditoria:");
+  httpClient.setToken(alunoSessao.token!);
+  const fonte = await httpContentAccessService.getViewerSource(alunoSessao, criado.id);
+  assert(fonte.origem === "API" && fonte.url.length > 0 && !!fonte.expiraEm, "Aluno recebe URL temporária com expiração");
+  assert(new Date(fonte.expiraEm!).getTime() > Date.now(), "A URL temporária ainda não expirou");
+  const baixado = await fetch(fonte.url); // sem Authorization: a autorização está na própria URL
+  assert(baixado.status === 200, "URL temporária entrega o arquivo (200)");
+  assert((await baixado.text()).startsWith("%PDF-"), "O conteúdo entregue é o PDF enviado");
+
+  await httpAccessLogService.record(alunoSessao, { tipoAcao: "TENTATIVA_DOWNLOAD", conteudoId: criado.id, detalhe: "teste e2e" });
+  await httpAccessLogService.record(alunoSessao, { tipoAcao: "PERDA_DE_FOCO", conteudoId: criado.id }); // sem equivalente no banco: ignorado
+
+  httpClient.setToken(docenteSessao.token!);
+  await httpMaterialService.setStatus(docenteSessao, criado.id, "RASCUNHO");
+  httpClient.setToken(alunoSessao.token!);
+  try {
+    await httpContentAccessService.getViewerSource(alunoSessao, criado.id);
+    assert(false, "Aluno não deveria abrir rascunho");
+  } catch (err: any) {
+    assert(err instanceof ApiError && err.status === 404, "Aluno recebe 404 ao tentar abrir rascunho");
+  }
+  httpClient.setToken(docenteSessao.token!);
+  await httpMaterialService.setStatus(docenteSessao, criado.id, "PUBLICADO");
+
+  httpClient.setToken(null);
+  try {
+    await httpContentAccessService.getViewerSource(alunoSessao, criado.id);
+    assert(false, "Sem token deveria falhar");
+  } catch (err: any) {
+    assert(err instanceof ApiError && err.status === 401, "Visualização sem token retorna 401");
+  }
+
+  httpClient.setToken(adminSessao.token!);
+  const logs = await httpAccessLogService.list(adminSessao);
+  const doMaterial = logs.filter((l) => l.conteudoId === criado.id);
+  assert(doMaterial.some((l) => l.tipoAcao === "ABRIU_PDF" && l.usuarioId === alunoSessao.usuario.id), "Auditoria: ABRIU_PDF do aluno registrado");
+  assert(doMaterial.some((l) => l.tipoAcao === "TENTATIVA_DOWNLOAD"), "Auditoria: tentativa de download registrada");
+  assert(doMaterial.some((l) => l.tipoAcao === "TENTATIVA_ACESSO_NEGADO"), "Auditoria: acesso negado ao rascunho registrado");
+  assert(doMaterial.every((l) => l.ipOrigem !== "—"), "Auditoria: IP determinado pelo servidor em todos os eventos");
 
   try {
     await httpMaterialService.create(docenteSessao, { titulo: "Inválido", descricao: "", tipo: "PDF", turmaId: turmaDocente, status: "RASCUNHO", arquivo: new File(["texto"], "x.pdf", { type: "application/pdf" }) });

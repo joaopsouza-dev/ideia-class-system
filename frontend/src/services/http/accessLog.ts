@@ -1,7 +1,6 @@
 import type { AccessLogService } from "../contracts";
-import { ApiError } from "../errors";
 import { httpClient, API_ENDPOINTS } from "../api";
-import type { AuditoriaResponseDTO } from "../api/types";
+import type { AuditoriaResponseDTO, BackendAcaoEventoCliente, EventoAcessoRequestDTO } from "../api/types";
 import type { LogAcesso, RegistroAcessoInput, Sessao, TipoAcao } from "@/types";
 
 /**
@@ -33,12 +32,23 @@ function toLogAcesso(dto: AuditoriaResponseDTO): LogAcesso {
 }
 
 /**
+ * Eventos que o navegador detecta e que têm equivalente no enum acao_log_enum do banco.
+ * Captura de tela (PrintScreen) e impressão são tentativas de "print": ambas viram
+ * TENTATIVA_PRINT_DETECTADA, e o tipo original segue no detalhe. Os demais eventos da interface
+ * (cópia, perda de foco, marca d'água alterada...) NÃO têm ação correspondente no banco e não
+ * são persistidos. Abertura de PDF/vídeo e acesso negado são registrados pelo servidor.
+ */
+const EVENTO_REPORTAVEL: Partial<Record<TipoAcao, { acao: BackendAcaoEventoCliente; rotulo?: string }>> = {
+  TENTATIVA_DOWNLOAD: { acao: "TENTATIVA_DOWNLOAD" },
+  TENTATIVA_IMPRESSAO: { acao: "TENTATIVA_PRINT_DETECTADA", rotulo: "Impressão" },
+  TENTATIVA_CAPTURA: { acao: "TENTATIVA_PRINT_DETECTADA", rotulo: "Captura de tela" },
+};
+
+/**
  * Adapter HTTP de auditoria. Lista somente registros reais do banco (RLS: admin vê todos).
  *
- * record(): a gravação de eventos feitos na visualização protegida ainda NÃO está ligada
- * ao backend (depende do módulo de visualização, sob responsabilidade de outro desenvolvedor,
- * que deve chamar fn_registrar_acesso). Até lá o evento não é persistido e não aparece na
- * auditoria. Não há simulação local.
+ * record(): envia a tentativa a POST /api/v1/conteudos/{id}/eventos. O backend determina o
+ * usuário (JWT), o IP e o User-Agent; o frontend só informa a ação e um texto curto.
  */
 export const httpAccessLogService: AccessLogService = {
   async list(_sessao: Sessao): Promise<LogAcesso[]> {
@@ -46,11 +56,12 @@ export const httpAccessLogService: AccessLogService = {
     return lista.map(toLogAcesso);
   },
 
-  async record(_sessao: Sessao, _evento: RegistroAcessoInput): Promise<void> {
-    throw new ApiError(
-      "NOT_IMPLEMENTED",
-      "O registro de eventos da visualização protegida ainda não está ligado ao backend.",
-      501,
-    );
+  async record(_sessao: Sessao, evento: RegistroAcessoInput): Promise<void> {
+    const alvo = EVENTO_REPORTAVEL[evento.tipoAcao];
+    if (!alvo || !evento.conteudoId) return; // sem equivalente no banco: não persistido
+
+    const detalhe = [alvo.rotulo, evento.detalhe].filter(Boolean).join(": ").slice(0, 200);
+    const corpo: EventoAcessoRequestDTO = { acao: alvo.acao, ...(detalhe ? { detalhe } : {}) };
+    await httpClient.post<void>(API_ENDPOINTS.CONTEUDOS.EVENTOS(evento.conteudoId), corpo);
   },
 };
