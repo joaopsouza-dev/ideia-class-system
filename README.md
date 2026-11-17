@@ -247,6 +247,3 @@ Remove-Item -LiteralPath dist/test -Recurse -Force
 | [Visualização e proteção](<docs/Grupo 4_ Visualização e Proteção.pdf>) | Documento de requisitos acadêmicos sobre visualização |
 | [Documentação do protótipo Figma](docs/Documentacao_do_Projeto_Figma.pdf) | Registro do protótipo visual |
 
-## Contexto acadêmico
-
-Os documentos acadêmicos identificam o projeto como parte da Residência Acadêmica do Porto Digital, Squad 22, em parceria com a Ideia Space Educação Espacial. O relatório técnico identifica Victor Emanoel e André Luiz como responsáveis pela camada de banco de dados; essa atribuição não representa a lista completa da equipe do projeto.
