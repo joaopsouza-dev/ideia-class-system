@@ -15,6 +15,7 @@ Repositório digital para organizar materiais acadêmicos e disponibilizá-los a
 - [Banco de dados e testes](#banco-de-dados-e-testes)
 - [Documentação complementar](#documentação-complementar)
 - [Contexto acadêmico](#contexto-acadêmico)
+- [Contatos](#contatos)
 
 ## Funcionalidades
 
@@ -247,3 +248,16 @@ Remove-Item -LiteralPath dist/test -Recurse -Force
 | [Visualização e proteção](<docs/Grupo 4_ Visualização e Proteção.pdf>) | Documento de requisitos acadêmicos sobre visualização |
 | [Documentação do protótipo Figma](docs/Documentacao_do_Projeto_Figma.pdf) | Registro do protótipo visual |
 
+
+## Contatos
+
+- **Kaylane Martins:** [kaylaneads0@gmail.com](mailto:kaylaneads0@gmail.com)
+- **Giulia de Melo:** [giuliavalencademelo1@gmail.com](mailto:giuliavalencademelo1@gmail.com)
+- **Iasmin Silva Linhares:** [Ias.linhares0107@gmail.com](mailto:Ias.linhares0107@gmail.com)
+- **João Pedro Souza Pereira:** [contato.joaopsouzap@gmail.com](mailto:contato.joaopsouzap@gmail.com) / 61992550895
+- **Igor Ferreira Galvão:** [igorg2006@gmail.com](mailto:igorg2006@gmail.com)
+- **André Luiz:** [andremnoleto@gmail.com](mailto:andremnoleto@gmail.com) / 61985024082
+- **Átila de Melo Cantoara:** [cantoaraatila@gmail.com](mailto:cantoaraatila@gmail.com)
+- **Kenzo Matsunaga:** [kenzo.matss@gmail.com](mailto:kenzo.matss@gmail.com) / 61992977384
+- **Gabriel Gomes Giani:** [gabrielggiani@gmail.com](mailto:gabrielggiani@gmail.com) / 61999577634
+- **Victor Emanoel Souza Lima:** [emanoel.sslima@gmail.com](mailto:emanoel.sslima@gmail.com) / 61995215398
